@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PrivacyGuard macOS 离线包</title>
+  <style>
+    :root { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #172033; background: #f4f7fb; } * { box-sizing: border-box; }
+    body { margin: 0; } main { max-width: 860px; margin: auto; padding: 44px 22px; } a { color: #1769e0; }
+    .back { text-decoration: none; } h1 { margin: 24px 0 8px; font-size: 38px; } .lead { color: #667085; line-height: 1.7; }
+    .panel { margin-top: 26px; padding: 26px; background: white; border: 1px solid #dce3ee; border-radius: 18px; box-shadow: 0 10px 30px rgba(42,62,97,.07); }
+    .file { display: flex; justify-content: space-between; gap: 16px; align-items: center; padding: 16px 0; border-bottom: 1px solid #edf0f5; } .file:last-child { border: 0; }
+    .file strong { display: block; overflow-wrap: anywhere; } .file small { color: #7a8496; }
+    .download { flex: 0 0 auto; padding: 10px 15px; border-radius: 9px; background: #1769e0; color: white; text-decoration: none; font-weight: 650; }
+    code { display: block; padding: 14px; border-radius: 10px; background: #172033; color: #eef4ff; overflow-x: auto; white-space: nowrap; }
+    .fallback { margin-top: 22px; color: #667085; line-height: 1.7; } @media(max-width:600px){.file{align-items:flex-start;flex-direction:column}.download{width:100%;text-align:center}}
+  </style>
+</head>
+<body><main>
+  <a class="back" href="./">← 重新选择系统</a>
+  <h1>macOS Apple Silicon</h1>
+  <p class="lead">适用于 macOS 14+ 和 M1、M2、M3、M4 及后续 Apple 芯片。请先运行<a href="check-offline-macos.sh">只读依赖检查</a>，再下载下面 4 个文件。</p>
+  <section class="panel">
+    <div class="file"><div><strong>macOS 运行包</strong><small>约 388 MB</small></div><a class="download" href="PrivacyGuard-standard-macos-arm64-runtime-v0.1.4.tar.gz">下载</a></div>
+    <div class="file"><div><strong>HaS 文本识别模型</strong><small>约 879 MB</small></div><a class="download" href="PrivacyGuard-standard-model-has-v0.1.4.tar.gz">下载</a></div>
+    <div class="file"><div><strong>PaddleOCR 模型</strong><small>约 439 MB</small></div><a class="download" href="PrivacyGuard-standard-model-paddleocr-v0.1.4.tar.gz">下载</a></div>
+    <div class="file"><div><strong>SHA-256 校验文件</strong><small>用于验证下载完整性</small></div><a class="download" href="SHA256SUMS">下载</a></div>
+  </section>
+  <section class="panel"><h2>下载完成后校验</h2><code>grep -E 'macos-arm64|model-' SHA256SUMS | shasum -a 256 -c -</code></section>
+  <p class="fallback">希望由 Agent 自动完成？复制<a href="agent-install.md">一键安装任务书</a>。国内镜像下载失败时，可改用 <a href="https://github.com/bseazh/PrivacyGuard/releases/tag/offline-standard-v0.1.4">GitHub Release</a>。</p>
+</main></body></html>

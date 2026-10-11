@@ -43,6 +43,8 @@ Windows x64 下载以下四个文件：
 - `PrivacyGuard-standard-model-paddleocr-v0.1.4.tar.gz`
 - `SHA256SUMS`
 
+Windows v0.1.4 还需两个补充文件（共 6 个）：`Install-PrivacyGuard-v0.1.4-r2.cmd` 和 `INSTALLER-R2-SHA256SUMS`。核对补充 cmd 的 SHA-256 后放入 app；原四个资产及 SHA256SUMS 保持不可变。
+
 下载完成后校验：
 
 ```bash
@@ -70,7 +72,7 @@ Get-FileHash .\PrivacyGuard-standard-*-v0.1.4* -Algorithm SHA256
 
 解压运行包，把两个模型包放在解压目录的上一级，然后双击：
 
-1. `Install-PrivacyGuard.cmd`
+1. `Install-PrivacyGuard-v0.1.4-r2.cmd`（同 Release 补充下载的修正版入口）
 2. `Launch-PrivacyGuard.cmd`
 
 检测使用 `Check-PrivacyGuard.cmd`，停止使用 `Stop-PrivacyGuard.cmd`。

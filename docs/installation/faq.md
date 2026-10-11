@@ -105,6 +105,14 @@ v0.1.4 最终包正在重新验收。Windows 结果请查看 [测试记录](http
 
 国内镜像尚未完成同步确认；请直接使用 GitHub Release，不能将旧版本模型与新 runtime 混用。草稿 Release 也不能作为普通用户下载入口。
 
+## 文件已校验通过，Windows 安装入口为什么仍报 SHA-256 mismatch？
+
+PowerShell 5.1 如果继承了 PowerShell 7 的 PSModulePath，可能加载不兼容模块，使 Get-FileHash 读取失败；旧预检把读取失败误报为哈希不匹配。使用同 Release 补充的 `Install-PrivacyGuard-v0.1.4-r2.cmd`（并用 `INSTALLER-R2-SHA256SUMS` 校验），它隔离模块路径并规范化目录后运行强制预检。无需重下已校验通过的三个压缩包，禁止跳过校验。
+
+## Windows 安装时出现乱码、Unexpected token 或 Missing closing brace？
+
+Windows PowerShell 5.1 按本地代码页读取没有 BOM 的脚本，中文可能被误解析。r2 安装入口会将解压后的 PowerShell 脚本规范为 UTF-8 BOM，再执行安装。该操作只调整文本编码，不修改压缩包与原 SHA256SUMS。
+
 ## 为什么不提供一个脚本把所有模型全部下载？
 
 模型体积、许可证和硬件要求不同。向所有用户默认下载 full 模型会浪费空间，也可能违反使用目的对应的模型许可。向导会先问能力和授权，再下载必要部分。

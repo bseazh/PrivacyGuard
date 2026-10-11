@@ -54,6 +54,8 @@ Full workflow: [copy-paste Agent installation prompt](./docs/installation/copy-p
 
 The standard offline package already includes the built frontend, Python 3.11 installer, Python wheels, llama.cpp, HaS, and PaddleOCR. It does not require Node.js, Git, Homebrew, WSL, Docker, or CUDA. Windows only needs the official Microsoft Visual C++ x64 Runtime when it is missing; see [requirements](./docs/installation/requirements.md).
 
+Windows v0.1.4 also requires the supplemental `Install-PrivacyGuard-v0.1.4-r2.cmd` and `INSTALLER-R2-SHA256SUMS` from the same Release. Verify the installer checksum, place the cmd in `app`, then double-click it. The original runtime assets remain immutable.
+
 - [Installation entry](./docs/installation/README.md)
 - [macOS guide](./docs/installation/macos.md)
 - [Windows guide](./docs/installation/windows.md)
@@ -66,7 +68,7 @@ Standard offline packages: choose [macOS or Windows on the China mirror](https:/
 
 The v0.1.4 final packages are undergoing validation. Use the [Windows test results](https://github.com/bseazh/PrivacyGuard/actions/workflows/offline-windows-smoke.yml) and installation FAQ for the current status. The macOS package supports Apple Silicon with macOS 14 or newer; Intel Macs are unsupported. The China mirror has not yet been synchronized for v0.1.4; use GitHub until its files and checksums are verified.
 
-After extraction, non-technical users can use the launchers in the app folder: `Install-PrivacyGuard.cmd` / `Launch-PrivacyGuard.cmd` / `Check-PrivacyGuard.cmd` on Windows, or the matching `.command` files on macOS. The launcher safely selects fallback localhost ports when defaults are occupied and writes the actual URL plus a health report under `.run` and `logs`.
+After extraction, non-technical users can use the launchers in the app folder: `Install-PrivacyGuard-v0.1.4-r2.cmd` / `Launch-PrivacyGuard.cmd` / `Check-PrivacyGuard.cmd` on Windows, or the matching `.command` files on macOS. The launcher safely selects fallback localhost ports when defaults are occupied and writes the actual URL plus a health report under `.run` and `logs`.
 
 ```bash
 ./scripts/doctor-macos.sh standard

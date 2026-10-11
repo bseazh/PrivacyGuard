@@ -55,7 +55,7 @@
 
 7. 安装步骤：
    - macOS：把 runtime tar.gz 解压到 app，执行 chmod +x app/*.command app/*.sh app/scripts/*.sh，优先运行 `Install-PrivacyGuard.command`，然后运行 `Launch-PrivacyGuard.command`。若缺少 Python 3.11，安装脚本会指出包内安装器；先获得确认再安装。
-   - Windows：把 runtime zip 解压到 app，优先运行 `Install-PrivacyGuard.cmd`，然后运行 `Launch-PrivacyGuard.cmd`；脚本只对自己的 PowerShell 进程使用 ExecutionPolicy Bypass。
+   - Windows：额外从同一个 Release 下载 Install-PrivacyGuard-v0.1.4-r2.cmd 和 INSTALLER-R2-SHA256SUMS（Windows 共 6 个文件）。先用 Get-FileHash 核对额外安装入口的 SHA-256，将该 cmd 放入 app，再运行 Install-PrivacyGuard-v0.1.4-r2.cmd，然后运行 Launch-PrivacyGuard.cmd。不要使用 runtime 内旧的安装入口；脚本只对自己的 PowerShell 进程使用 ExecutionPolicy Bypass。
    - 应用依赖必须安装在包内隔离虚拟环境中；除经我确认安装包内 Python 3.11 外，不修改系统 Python。不关闭 Gatekeeper、杀毒软件、防火墙或 TLS 校验。
 
 8. 启动后验证：
