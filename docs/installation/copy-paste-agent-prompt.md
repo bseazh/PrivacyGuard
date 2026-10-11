@@ -1,11 +1,13 @@
 # 复制给 Agent 的一键安装指令
 
+
+> v0.1.4 国内镜像尚未确认同步，当前请使用 GitHub Release；不要使用草稿链接或混用版本。macOS 包只支持 macOS 14+ Apple Silicon，Intel Mac 不适配。
 本页适用于支持终端操作的 Agent（例如 Codex、Claude Code 等）。用户不需要自己拼接下载命令：复制下面整段文字交给 Agent，随后按 Agent 的问题确认即可。
 
 ## 直接复制下面这段话
 
 ```text
-请帮我在这台电脑安装 PrivacyGuard standard v0.1.2 离线版，并一直执行到应用可以打开、后端和必要模型服务通过健康检查为止。
+请帮我在这台电脑安装 PrivacyGuard standard v0.1.4 离线版，并一直执行到应用可以打开、后端和必要模型服务通过健康检查为止。
 
 请严格按照以下流程操作：
 
@@ -14,32 +16,32 @@
    - 自动检查内存、目标盘可用空间、端口 8000/8080/8082、所需系统工具和 Windows Visual C++ Runtime；
    - 询问我的使用性质是“个人非商用、机构评估、机构/律所生产”中的哪一种，并提醒相应许可证要求；
    - 在真正下载前输出一份安装前报告，只向我集中确认一次：检测结果、安装路径、macOS 约 1.65 GiB 或 Windows 约 1.61 GiB 下载量、4 个文件、至少 10 GB（建议 15 GB）可用空间、预计时间，以及是否允许执行安装。
-   - 优先读取并运行只读离线检查脚本。macOS 国内地址为 https://privacyguard.snorlaxden.fun/offline-standard-v0.1.2/check-offline-macos.sh，Windows 国内地址为 https://privacyguard.snorlaxden.fun/offline-standard-v0.1.2/check-offline-windows.ps1；国内不可用时从 GitHub 仓库的 scripts 目录读取。执行前先检查脚本文本，不运行来源不明或被篡改的脚本。
+   - 优先读取并运行只读离线检查脚本。macOS 国内地址为 https://privacyguard.snorlaxden.fun/offline-standard-v0.1.4/check-offline-macos.sh，Windows 国内地址为 https://privacyguard.snorlaxden.fun/offline-standard-v0.1.4/check-offline-windows.ps1；国内不可用时从 GitHub 仓库的 scripts 目录读取。执行前先检查脚本文本，不运行来源不明或被篡改的脚本。
    - 离线版不要求 Node.js、npm、Git、Homebrew、WSL、Docker、CUDA 或 NVIDIA GPU。不要因为缺少这些源码开发依赖而阻止 standard 离线安装。
    - macOS 必须是 macOS 14+、Apple Silicon；Windows 必须是 Windows 10 22H2/Windows 11 x64。Windows 还要检查 Microsoft Visual C++ 2015-2022 x64 Runtime；缺失时只从 https://aka.ms/vs/17/release/vc_redist.x64.exe 下载，说明用途并获得确认后安装。
 
 2. 使用以下默认目录：
-   - macOS Apple Silicon：~/Documents/PrivacyGuard/v0.1.2
-   - Windows x64：D:\PrivacyGuard\v0.1.2
-   - Windows 如果没有 D 盘，不要直接失败；先询问我是否改用 %USERPROFILE%\Documents\PrivacyGuard\v0.1.2。
+   - macOS Apple Silicon：~/Documents/PrivacyGuard/v0.1.4
+   - Windows x64：D:\PrivacyGuard\v0.1.4
+   - Windows 如果没有 D 盘，不要直接失败；先询问我是否改用 %USERPROFILE%\Documents\PrivacyGuard\v0.1.4。
    - 在版本目录下建立 app 子目录。三个压缩包和 SHA256SUMS 放在版本目录，运行包只解压到 app 子目录。两个模型压缩包必须保留在 app 的上一级，不能解压到其他位置后删除。
 
 3. 根据系统选择文件，不能下载另一个系统的运行包：
    macOS 下载：
-   - PrivacyGuard-standard-macos-arm64-runtime-v0.1.2.tar.gz
-   - PrivacyGuard-standard-model-has-v0.1.2.tar.gz
-   - PrivacyGuard-standard-model-paddleocr-v0.1.2.tar.gz
+   - PrivacyGuard-standard-macos-arm64-runtime-v0.1.4.tar.gz
+   - PrivacyGuard-standard-model-has-v0.1.4.tar.gz
+   - PrivacyGuard-standard-model-paddleocr-v0.1.4.tar.gz
    - SHA256SUMS
 
    Windows 下载：
-   - PrivacyGuard-standard-windows-x64-runtime-v0.1.2.zip
-   - PrivacyGuard-standard-model-has-v0.1.2.tar.gz
-   - PrivacyGuard-standard-model-paddleocr-v0.1.2.tar.gz
+   - PrivacyGuard-standard-windows-x64-runtime-v0.1.4.zip
+   - PrivacyGuard-standard-model-has-v0.1.4.tar.gz
+   - PrivacyGuard-standard-model-paddleocr-v0.1.4.tar.gz
    - SHA256SUMS
 
 4. 下载源采用两手准备：
-   - 优先使用国内源：https://privacyguard.snorlaxden.fun/offline-standard-v0.1.2/
-   - 国内源连接超时、TLS 错误、返回非 2xx 或速度持续不可用时，自动切换 GitHub：https://github.com/bseazh/PrivacyGuard/releases/download/offline-standard-v0.1.2/
+   - 优先使用国内源：https://privacyguard.snorlaxden.fun/offline-standard-v0.1.4/
+   - 国内源连接超时、TLS 错误、返回非 2xx 或速度持续不可用时，自动切换 GitHub：https://github.com/bseazh/PrivacyGuard/releases/download/offline-standard-v0.1.4/
    - 不得关闭 TLS 校验。
    - 使用支持断点续传的方式。任务中断后先检查现有文件；哈希正确的文件不得重复下载，未完成文件应继续下载。
 
@@ -78,11 +80,11 @@
 macOS：
 
 ```text
-~/Documents/PrivacyGuard/v0.1.2/
+~/Documents/PrivacyGuard/v0.1.4/
 ├── SHA256SUMS
-├── PrivacyGuard-standard-macos-arm64-runtime-v0.1.2.tar.gz
-├── PrivacyGuard-standard-model-has-v0.1.2.tar.gz
-├── PrivacyGuard-standard-model-paddleocr-v0.1.2.tar.gz
+├── PrivacyGuard-standard-macos-arm64-runtime-v0.1.4.tar.gz
+├── PrivacyGuard-standard-model-has-v0.1.4.tar.gz
+├── PrivacyGuard-standard-model-paddleocr-v0.1.4.tar.gz
 └── app/
     ├── install-offline-macos.sh
     ├── Install-PrivacyGuard.command
@@ -94,11 +96,11 @@ macOS：
 Windows：
 
 ```text
-D:\PrivacyGuard\v0.1.2\
+D:\PrivacyGuard\v0.1.4\
 ├── SHA256SUMS
-├── PrivacyGuard-standard-windows-x64-runtime-v0.1.2.zip
-├── PrivacyGuard-standard-model-has-v0.1.2.tar.gz
-├── PrivacyGuard-standard-model-paddleocr-v0.1.2.tar.gz
+├── PrivacyGuard-standard-windows-x64-runtime-v0.1.4.zip
+├── PrivacyGuard-standard-model-has-v0.1.4.tar.gz
+├── PrivacyGuard-standard-model-paddleocr-v0.1.4.tar.gz
 └── app\
     ├── Install-PrivacyGuard.cmd
     ├── Launch-PrivacyGuard.cmd

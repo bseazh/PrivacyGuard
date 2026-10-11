@@ -1,5 +1,7 @@
 # standard 离线包
 
+
+> v0.1.4 国内镜像尚未确认同步，当前请使用 GitHub Release；不要使用草稿链接或混用版本。macOS 包只支持 macOS 14+ Apple Silicon，Intel Mac 不适配。
 standard 离线发行由四个组件组成：
 
 1. macOS Apple Silicon 运行包；
@@ -11,11 +13,11 @@ standard 离线发行由四个组件组成：
 
 ## 下载入口
 
-- GitHub Release（当前可用）：https://github.com/bseazh/PrivacyGuard/releases/tag/offline-standard-v0.1.2
-- 国内平台选择页：https://privacyguard.snorlaxden.fun/offline-standard-v0.1.2/
-- macOS 专用页：https://privacyguard.snorlaxden.fun/offline-standard-v0.1.2/macos.html
-- Windows 专用页：https://privacyguard.snorlaxden.fun/offline-standard-v0.1.2/windows.html
-- 可复制给 Agent 的任务书：https://privacyguard.snorlaxden.fun/offline-standard-v0.1.2/agent-install.md
+- GitHub Release（当前可用）：https://github.com/bseazh/PrivacyGuard/releases/tag/offline-standard-v0.1.4
+- 国内平台选择页：https://privacyguard.snorlaxden.fun/offline-standard-v0.1.4/
+- macOS 专用页：https://privacyguard.snorlaxden.fun/offline-standard-v0.1.4/macos.html
+- Windows 专用页：https://privacyguard.snorlaxden.fun/offline-standard-v0.1.4/windows.html
+- 可复制给 Agent 的任务书：https://privacyguard.snorlaxden.fun/offline-standard-v0.1.4/agent-install.md
 
 国内镜像无法访问时直接改用 GitHub；不要关闭 TLS 校验。两个来源中的同名文件应通过相同的 `SHA256SUMS` 校验。
 
@@ -29,16 +31,16 @@ standard 离线发行由四个组件组成：
 
 macOS Apple Silicon 下载以下四个文件：
 
-- `PrivacyGuard-standard-macos-arm64-runtime-v0.1.2.tar.gz`
-- `PrivacyGuard-standard-model-has-v0.1.2.tar.gz`
-- `PrivacyGuard-standard-model-paddleocr-v0.1.2.tar.gz`
+- `PrivacyGuard-standard-macos-arm64-runtime-v0.1.4.tar.gz`
+- `PrivacyGuard-standard-model-has-v0.1.4.tar.gz`
+- `PrivacyGuard-standard-model-paddleocr-v0.1.4.tar.gz`
 - `SHA256SUMS`
 
 Windows x64 下载以下四个文件：
 
-- `PrivacyGuard-standard-windows-x64-runtime-v0.1.2.zip`
-- `PrivacyGuard-standard-model-has-v0.1.2.tar.gz`
-- `PrivacyGuard-standard-model-paddleocr-v0.1.2.tar.gz`
+- `PrivacyGuard-standard-windows-x64-runtime-v0.1.4.zip`
+- `PrivacyGuard-standard-model-has-v0.1.4.tar.gz`
+- `PrivacyGuard-standard-model-paddleocr-v0.1.4.tar.gz`
 - `SHA256SUMS`
 
 下载完成后校验：
@@ -50,7 +52,7 @@ grep -E 'macos-arm64|model-' SHA256SUMS | shasum -a 256 -c -
 
 ```powershell
 # Windows PowerShell：逐项与 SHA256SUMS 对照
-Get-FileHash .\PrivacyGuard-standard-*-v0.1.2* -Algorithm SHA256
+Get-FileHash .\PrivacyGuard-standard-*-v0.1.4* -Algorithm SHA256
 ```
 
 > 许可提醒：仓库当前的 `DataInfra RedactionEverything Personal Use License 1.0` 不允许未经单独书面授权公开重新分发项目副本。可以为已获许可的本地使用构建离线包，但在上传 GitHub Release、对象存储或交付第三方之前，必须先取得项目版权方的书面再分发许可。构建成功不等于获得发布权。
@@ -73,16 +75,16 @@ Get-FileHash .\PrivacyGuard-standard-*-v0.1.2* -Algorithm SHA256
 
 检测使用 `Check-PrivacyGuard.cmd`，停止使用 `Stop-PrivacyGuard.cmd`。
 
-Windows standard 离线包使用 CPU 兼容运行方式，不依赖 WSL 或 NVIDIA GPU。v0.1.2 已在 GitHub 托管的 Windows Server 2025 x64 环境完成端到端验收：离线安装、模型解压、端口冲突自动切换、HaS、PaddleOCR、后端健康检查、停止和日志收集均通过。测试记录：[v0.1.2 validation workflow](https://github.com/bseazh/PrivacyGuard/actions/workflows/offline-windows-smoke.yml)。
+Windows standard 离线包使用 CPU 兼容运行方式，不依赖 WSL 或 NVIDIA GPU。v0.1.4 最终包正在验收，结果以 [Windows 测试记录](https://github.com/bseazh/PrivacyGuard/actions/workflows/offline-windows-smoke.yml)为准，不应把早期失败记录解释为安装通过。
 
-macOS v0.1.2 已在 macOS 14.8.1 Apple Silicon（M2、16 GB）完成纯离线启动验证，后端、HaS、OCR 均可访问；OCR 使用“Mac CPU 兼容模式”。
+macOS v0.1.4 最终包正在重新验收；OCR 使用“Mac CPU 兼容模式”。只支持 macOS 14+ 的 Apple Silicon，不支持 Intel Mac。
 
 ## 构建
 
 在已经具备模型、PaddleX 缓存和 macOS Python 环境的 Apple Silicon 构建机执行：
 
 ```bash
-./scripts/build-offline-standard.sh
+OFFLINE_VERSION=v0.1.5 ./scripts/build-offline-standard.sh
 ```
 
-输出目录默认为 `dist/offline/v0.1.2/`。发行包不包含 `backend/data`、`backend/uploads`、`backend/outputs`、日志或任何用户材料。此 v0.1.2 发行已按授权发布；后续版本或第三方再次分发仍须单独确认许可。
+构建必须使用尚未发布的新版本（上例为 v0.1.5），输出到 `dist/offline/<版本>/`；已有目录、tag 或 Release 会被拒绝，禁止覆盖旧资产。发行包不包含用户材料。本次发行已获用户确认的再分发授权。

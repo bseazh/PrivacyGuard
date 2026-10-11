@@ -6,7 +6,7 @@
 
 ## standard 离线包从哪里下载？
 
-进入[国内平台选择页](https://privacyguard.snorlaxden.fun/offline-standard-v0.1.2/)，选择 macOS 或 Windows。系统专用页只展示该平台需要的 4 个文件。国内镜像不可用时改用 [GitHub Release](https://github.com/bseazh/PrivacyGuard/releases/tag/offline-standard-v0.1.2)，下载后必须用 `SHA256SUMS` 校验。
+进入[国内平台选择页](https://privacyguard.snorlaxden.fun/offline-standard-v0.1.4/)，选择 macOS 或 Windows。系统专用页只展示该平台需要的 4 个文件。国内镜像不可用时改用 [GitHub Release](https://github.com/bseazh/PrivacyGuard/releases/tag/offline-standard-v0.1.4)，下载后必须用 `SHA256SUMS` 校验。
 
 不想自己操作命令时，复制[完整安装任务书](./copy-paste-agent-prompt.md)给支持终端操作的 Agent。Agent 会先说明路径、预计时间和系统修改，获得确认后再执行。
 
@@ -32,7 +32,7 @@ macOS 下载约 1.65 GiB，Windows 约 1.61 GiB。10 Mbps 通常约 27–35 分�
 
 ## 没有 D 盘怎么办？
 
-Windows 向导应先询问用户，然后改用 `%USERPROFILE%\Documents\PrivacyGuard\v0.1.2`。不得因为没有 D 盘直接判定电脑不支持。
+Windows 向导应先询问用户，然后改用 `%USERPROFILE%\Documents\PrivacyGuard\v0.1.4`。不得因为没有 D 盘直接判定电脑不支持。
 
 ## 只有 8 GB 内存能安装吗？
 
@@ -44,7 +44,7 @@ Windows 向导应先询问用户，然后改用 `%USERPROFILE%\Documents\Privacy
 
 ## Windows 为什么出现 tzdata 或 colorama 找不到？
 
-这是早期 v0.1.0 Windows wheelhouse 漏掉条件依赖导致的。当前包已同时包含应用和 OCR 所需的 `tzdata`，以及 OCR 所需的 `colorama`。请下载 v0.1.2 的完整同版本文件并校验 SHA-256。
+这是早期 v0.1.0 Windows wheelhouse 漏掉条件依赖导致的。当前包已同时包含应用和 OCR 所需的 `tzdata`，以及 OCR 所需的 `colorama`。请下载 v0.1.4 的完整同版本文件并校验 SHA-256。
 
 ## Windows 安装成功却出现中文 UnicodeEncodeError？
 
@@ -71,11 +71,11 @@ Windows 向导应先询问用户，然后改用 `%USERPROFILE%\Documents\Privacy
 
 ## 为什么必须使用同一版本的四个下载文件？
 
-从 v0.1.1 开始 Release 资产不再覆盖更新。runtime、HaS、PaddleOCR 和 `SHA256SUMS` 必须来自同一个版本目录，不能把 v0.1.0 模型包与 v0.1.2 runtime 混用。这样可以避免浏览器或 CDN 缓存旧文件造成哈希不一致。
+从 v0.1.1 开始 Release 资产不再覆盖更新。runtime、HaS、PaddleOCR 和 `SHA256SUMS` 必须来自同一个版本目录，不能把 v0.1.0 模型包与 v0.1.4 runtime 混用。这样可以避免浏览器或 CDN 缓存旧文件造成哈希不一致。
 
 ## Windows 停止时提示“身份记录不一致”怎么办？
 
-停止器会同时核对 PID、可执行文件路径、命令行标记和启动时间。只要任一项不一致，就不会结束该进程，以防 PID 被其他软件复用。v0.1.2 会保留记录并写入 `status: stale`，在问题解决前阻止启动第二套服务。不要手动结束不认识的系统进程，应把警告和 `.run` 目录交给 Agent 核对。
+停止器会同时核对 PID、可执行文件路径、命令行标记和启动时间。只要任一项不一致，就不会结束该进程，以防 PID 被其他软件复用。v0.1.4 会保留记录并写入 `status: stale`，在问题解决前阻止启动第二套服务。不要手动结束不认识的系统进程，应把警告和 `.run` 目录交给 Agent 核对。
 
 ## 启动失败后会不会留下后台进程？
 
@@ -95,7 +95,15 @@ Windows 和 macOS 的安装过程都会保存在 `app/logs/install.log`。运行
 
 ## 离线包是否经过真实环境测试？
 
-是。macOS v0.1.2 已在 macOS 14.8.1 Apple Silicon（M2、16 GB）完成离线安装、启动和 8000 端口冲突切换验证。Windows v0.1.2 已在 GitHub 托管的 Windows Server 2025 x64 完成下载、SHA-256、完全离线安装、模型解压、端口冲突切换、HaS、PaddleOCR、后端健康检查、停止和日志收集；测试记录为 [v0.1.2 validation workflow](https://github.com/bseazh/PrivacyGuard/actions/workflows/offline-windows-smoke.yml)。不同用户电脑仍应先运行预检脚本，以排除磁盘和 Visual C++ Runtime 等本机差异。
+v0.1.4 最终包正在重新验收。Windows 结果请查看 [测试记录](https://github.com/bseazh/PrivacyGuard/actions/workflows/offline-windows-smoke.yml)；只有实际安装、启动和停止步骤全部成功才算通过。不同用户电脑仍应运行预检脚本，以排除磁盘、系统版本和 Visual C++ Runtime 等本机差异。
+
+## v0.1.2 / v0.1.3 的 Windows 双击安装为什么失败？
+
+早期入口遇到换行兼容问题，随后又发现以反斜杠结尾的目录参数会导致 PowerShell 错误合并参数。v0.1.4 已包含 CRLF 和目录参数修复。不要手动修改哈希或跳过预检，应下载同版本完整文件。
+
+## 为什么 Agent 找不到 v0.1.4 国内下载文件？
+
+国内镜像尚未完成同步确认；请直接使用 GitHub Release，不能将旧版本模型与新 runtime 混用。草稿 Release 也不能作为普通用户下载入口。
 
 ## 为什么不提供一个脚本把所有模型全部下载？
 

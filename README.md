@@ -47,7 +47,7 @@ Do not start by downloading every model. First choose an installation profile an
 Paste this into an Agent that can operate a terminal:
 
 ```text
-Install PrivacyGuard standard v0.1.2 offline edition on this computer. First read and follow https://privacyguard.snorlaxden.fun/offline-standard-v0.1.2/agent-install.md; if unavailable, use https://raw.githubusercontent.com/bseazh/PrivacyGuard/datainfra-runtime/docs/installation/copy-paste-agent-prompt.md. Perform read-only system, architecture, disk, port, and license-purpose checks first. Show the estimated download size, time, and destination and wait for my confirmation. Use ~/Documents/PrivacyGuard/v0.1.2 on macOS and D:\PrivacyGuard\v0.1.2 on Windows; if D: is absent, ask before using Documents. Prefer the China mirror, fall back to GitHub, resume interrupted downloads, verify SHA-256, then install, start, and validate the app, backend, HaS, and OCR. Preserve completed downloads and logs when troubleshooting instead of restarting from scratch.
+Install PrivacyGuard standard v0.1.4 offline edition on this computer. First read and follow https://privacyguard.snorlaxden.fun/offline-standard-v0.1.4/agent-install.md; if unavailable, use https://raw.githubusercontent.com/bseazh/PrivacyGuard/datainfra-runtime/docs/installation/copy-paste-agent-prompt.md. Perform read-only system, architecture, disk, port, and license-purpose checks first. Show the estimated download size, time, and destination and wait for my confirmation. Use ~/Documents/PrivacyGuard/v0.1.4 on macOS and D:\PrivacyGuard\v0.1.4 on Windows; if D: is absent, ask before using Documents. Prefer the China mirror, fall back to GitHub, resume interrupted downloads, verify SHA-256, then install, start, and validate the app, backend, HaS, and OCR. Preserve completed downloads and logs when troubleshooting instead of restarting from scratch.
 ```
 
 Full workflow: [copy-paste Agent installation prompt](./docs/installation/copy-paste-agent-prompt.md).
@@ -62,9 +62,9 @@ The standard offline package already includes the built frontend, Python 3.11 in
 - [Installation FAQ](./docs/installation/faq.md)
 - [Changelog](./CHANGELOG.md)
 
-Standard offline packages: choose [macOS or Windows on the China mirror](https://privacyguard.snorlaxden.fun/offline-standard-v0.1.2/), or use [GitHub Release v0.1.2](https://github.com/bseazh/PrivacyGuard/releases/tag/offline-standard-v0.1.2). See the [offline package guide](./docs/installation/offline-standard.md) for SHA-256 verification.
+Standard offline packages: choose [macOS or Windows on the China mirror](https://privacyguard.snorlaxden.fun/offline-standard-v0.1.4/), or use [GitHub Release v0.1.4](https://github.com/bseazh/PrivacyGuard/releases/tag/offline-standard-v0.1.4). See the [offline package guide](./docs/installation/offline-standard.md) for SHA-256 verification.
 
-The v0.1.2 packages have been tested end to end on macOS 14.8.1 Apple Silicon and GitHub-hosted Windows Server 2025 x64: offline dependency installation, model extraction, safe port fallback, backend startup, HaS, PaddleOCR readiness, health checks, shutdown, and log collection all completed successfully. Windows validation run: [latest v0.1.2 workflow](https://github.com/bseazh/PrivacyGuard/actions/workflows/offline-windows-smoke.yml).
+The v0.1.4 final packages are undergoing validation. Use the [Windows test results](https://github.com/bseazh/PrivacyGuard/actions/workflows/offline-windows-smoke.yml) and installation FAQ for the current status. The macOS package supports Apple Silicon with macOS 14 or newer; Intel Macs are unsupported. The China mirror has not yet been synchronized for v0.1.4; use GitHub until its files and checksums are verified.
 
 After extraction, non-technical users can use the launchers in the app folder: `Install-PrivacyGuard.cmd` / `Launch-PrivacyGuard.cmd` / `Check-PrivacyGuard.cmd` on Windows, or the matching `.command` files on macOS. The launcher safely selects fallback localhost ports when defaults are occupied and writes the actual URL plus a health report under `.run` and `logs`.
 

@@ -48,6 +48,7 @@ jobs:
           )
           foreach ($asset in $assets) {
             gh release download $env:RELEASE_TAG --repo bseazh/PrivacyGuard --pattern $asset --dir .
+            if ($LASTEXITCODE -ne 0) { throw "Unable to download $asset from $env:RELEASE_TAG" }
           }
 
       - name: Verify SHA-256
@@ -74,6 +75,7 @@ jobs:
         run: |
           $app = Join-Path $env:PRIVACYGUARD_TEST_ROOT "app"
           New-Item -ItemType Directory -Force -Path $app | Out-Null
+          "PRIVACYGUARD_APP_ROOT=$app" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           Expand-Archive -Path (Join-Path $env:PRIVACYGUARD_TEST_ROOT "PrivacyGuard-standard-windows-x64-runtime-v0.1.4.zip") -DestinationPath $app -Force
           Set-Location $app
           $env:PRIVACYGUARD_NONINTERACTIVE = "1"
@@ -120,8 +122,10 @@ jobs:
             Set-Location $env:PRIVACYGUARD_APP_ROOT
             .\Stop-PrivacyGuard.ps1
           }
-          $blockerFile = Join-Path $env:PRIVACYGUARD_APP_ROOT ".run\test-blocker.pid"
-          if (Test-Path $blockerFile) { Stop-Process -Id ([int](Get-Content $blockerFile -Raw)) -Force -ErrorAction SilentlyContinue }
+          if ($env:PRIVACYGUARD_APP_ROOT) {
+            $blockerFile = Join-Path $env:PRIVACYGUARD_APP_ROOT ".run\test-blocker.pid"
+            if (Test-Path $blockerFile) { Stop-Process -Id ([int](Get-Content $blockerFile -Raw)) -Force -ErrorAction SilentlyContinue }
+          }
 
       - name: Verify PID reuse protection and failed-start cleanup
         shell: pwsh

@@ -1,5 +1,5 @@
 param(
-    [string]$TargetDirectory = "D:\PrivacyGuard\v0.1.2",
+    [string]$TargetDirectory = "D:\PrivacyGuard\v0.1.4",
     [double]$SpeedMbps = 0,
     [string]$PackageDirectory = "",
     [switch]$InstallationGate
@@ -20,7 +20,7 @@ Write-Host "PrivacyGuard standard offline preflight (Windows)"
 Write-Host "Target: $TargetDirectory"
 Write-Host "------------------------------------------------"
 
-if ([Environment]::Is64BitOperatingSystem) { Ok "Architecture: Windows x64" } else { Fail "The v0.1.2 package requires Windows x64." }
+if ([Environment]::Is64BitOperatingSystem) { Ok "Architecture: Windows x64" } else { Fail "The v0.1.4 package requires Windows x64." }
 $Os = Get-CimInstance Win32_OperatingSystem
 if ($Os) {
     $Build = [int]$Os.BuildNumber
@@ -33,7 +33,7 @@ $TargetRoot = [IO.Path]::GetPathRoot($TargetDirectory)
 $DriveName = if ($TargetRoot) { $TargetRoot.Substring(0,1) } else { "" }
 $Drive = if ($DriveName) { Get-PSDrive -Name $DriveName } else { $null }
 if (-not $Drive) {
-    Fail "Target drive $TargetRoot does not exist. Ask before switching to $env:USERPROFILE\Documents\PrivacyGuard\v0.1.2."
+    Fail "Target drive $TargetRoot does not exist. Ask before switching to $env:USERPROFILE\Documents\PrivacyGuard\v0.1.4."
 } else {
     $FreeGb = [math]::Floor($Drive.Free / 1GB)
     if ($FreeGb -ge 15) { Ok "Free disk on ${TargetRoot}: ${FreeGb} GB" } elseif ($FreeGb -ge 10) { Warn "Free disk on ${TargetRoot}: ${FreeGb} GB; 15 GB is recommended." } else { Fail "Free disk on ${TargetRoot}: ${FreeGb} GB; at least 10 GB is required." }

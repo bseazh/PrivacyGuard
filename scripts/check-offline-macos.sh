@@ -1,7 +1,7 @@
 #!/bin/zsh
 set -u
 
-TARGET_DIR="${1:-$HOME/Documents/PrivacyGuard/v0.1.2}"
+TARGET_DIR="${1:-$HOME/Documents/PrivacyGuard/v0.1.4}"
 SPEED_MBPS="${2:-0}"
 FAILURES=0
 WARNINGS=0
@@ -21,7 +21,7 @@ print "Target: $TARGET_DIR"
 print "------------------------------------------------"
 
 [[ "$(uname -s)" == "Darwin" ]] || fail "This package requires macOS."
-[[ "$(uname -m)" == "arm64" ]] && ok "Architecture: Apple Silicon arm64" || fail "The v0.1.2 macOS package does not support Intel Macs."
+[[ "$(uname -m)" == "arm64" ]] && ok "Architecture: Apple Silicon arm64" || fail "The v0.1.4 macOS package does not support Intel Macs."
 
 MAC_VERSION="$(sw_vers -productVersion 2>/dev/null || print 0)"
 MAC_MAJOR="${MAC_VERSION%%.*}"

@@ -1,6 +1,8 @@
 # 环境要求
 
-## standard v0.1.2 离线包
+
+> v0.1.4 国内镜像尚未确认同步，当前请使用 GitHub Release；不要使用草稿链接或混用版本。macOS 包只支持 macOS 14+ Apple Silicon，Intel Mac 不适配。
+## standard v0.1.4 离线包
 
 离线包已经包含构建后的前端、Python wheels、Python 3.11 官方安装器、llama.cpp、HaS 和 PaddleOCR 模型。**不需要** Node.js、npm、Git、Homebrew、WSL、Docker、NVIDIA GPU 或 CUDA。
 

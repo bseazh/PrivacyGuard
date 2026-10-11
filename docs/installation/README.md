@@ -1,8 +1,10 @@
 # 新手安装入口
 
+
+> v0.1.4 国内镜像尚未确认同步，当前请使用 GitHub Release；不要使用草稿链接或混用版本。macOS 包只支持 macOS 14+ Apple Silicon，Intel Mac 不适配。
 本目录面向第一次安装的用户。建议顺序是：**回答问题 → 环境检查 → 选择档位 → 安装 → 启动 → 验收**。
 
-如果希望由 Agent 完成整个过程，直接复制[一键安装任务书](./copy-paste-agent-prompt.md)中的文字。默认安装路径为 macOS 的 `~/Documents/PrivacyGuard/v0.1.2` 或 Windows 的 `D:\PrivacyGuard\v0.1.2`，并自动在国内镜像与 GitHub 之间切换。
+如果希望由 Agent 完成整个过程，直接复制[一键安装任务书](./copy-paste-agent-prompt.md)中的文字。默认安装路径为 macOS 的 `~/Documents/PrivacyGuard/v0.1.4` 或 Windows 的 `D:\PrivacyGuard\v0.1.4`，并自动在国内镜像与 GitHub 之间切换。
 
 ## 第一步：选择使用档位
 
@@ -42,7 +44,7 @@ powershell -ExecutionPolicy Bypass -File scripts\doctor-windows.ps1 -Profile sta
 - [FAQ](./faq.md)
 - [安装与验收测试方案](./acceptance-test.md)
 
-如选择 standard 离线安装，可直接进入[国内下载页选择 macOS 或 Windows](https://privacyguard.snorlaxden.fun/offline-standard-v0.1.2/)。国内镜像不可用时使用 [GitHub Release](https://github.com/bseazh/PrivacyGuard/releases/tag/offline-standard-v0.1.2)。
+如选择 standard 离线安装，可直接进入[国内下载页选择 macOS 或 Windows](https://privacyguard.snorlaxden.fun/offline-standard-v0.1.4/)。国内镜像不可用时使用 [GitHub Release](https://github.com/bseazh/PrivacyGuard/releases/tag/offline-standard-v0.1.4)。
 
 ## 安装完成标准
 

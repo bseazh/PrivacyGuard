@@ -1,5 +1,7 @@
 # Agent 新手安装向导
 
+
+> v0.1.4 国内镜像尚未确认同步，当前请使用 GitHub Release；不要使用草稿链接或混用版本。macOS 包只支持 macOS 14+ Apple Silicon，Intel Mac 不适配。
 本文件提供给能运行终端命令的 Agent。Agent 不得一上来就执行安装，必须先完成问答和只读检查。
 
 面向最终用户的整段可复制任务书见 [copy-paste-agent-prompt.md](./copy-paste-agent-prompt.md)。执行该任务书时，本文件仍是必须遵守的安全与验收规范。
@@ -19,8 +21,8 @@ Agent 能操作终端时，系统、架构、内存、磁盘、端口、Python �
 ## standard 离线包下载源选择
 
 1. 必须先确认用户使用 macOS 还是 Windows，不得先给出一整页混合文件让用户自行判断；
-2. macOS 用户给出 `https://privacyguard.snorlaxden.fun/offline-standard-v0.1.2/macos.html`，Windows 用户给出 `https://privacyguard.snorlaxden.fun/offline-standard-v0.1.2/windows.html`；尚未确认系统时才给平台选择页 `https://privacyguard.snorlaxden.fun/offline-standard-v0.1.2/`；
-3. 先探测对应国内页面；若连接超时、TLS 错误或返回非 2xx，则改用 GitHub Release：`https://github.com/bseazh/PrivacyGuard/releases/tag/offline-standard-v0.1.2`；
+2. macOS 用户给出 `https://privacyguard.snorlaxden.fun/offline-standard-v0.1.4/macos.html`，Windows 用户给出 `https://privacyguard.snorlaxden.fun/offline-standard-v0.1.4/windows.html`；尚未确认系统时才给平台选择页 `https://privacyguard.snorlaxden.fun/offline-standard-v0.1.4/`；
+3. 先探测对应国内页面；若连接超时、TLS 错误或返回非 2xx，则改用 GitHub Release：`https://github.com/bseazh/PrivacyGuard/releases/tag/offline-standard-v0.1.4`；
 4. macOS 下载 macOS runtime、HaS、PaddleOCR 和 `SHA256SUMS`；Windows 下载 Windows runtime、HaS、PaddleOCR 和 `SHA256SUMS`；
 5. 支持断点续传，但不得通过关闭 TLS 校验解决网络问题；
 6. 下载完成后必须校验 SHA-256，失败的文件应删除并重新下载。
