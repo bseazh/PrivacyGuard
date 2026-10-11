@@ -6,17 +6,17 @@
 
 ## standard 离线包从哪里下载？
 
-进入[国内平台选择页](https://privacyguard.snorlaxden.fun/offline-standard-v0.1.4/)，选择 macOS 或 Windows。系统专用页只展示该平台需要的 4 个文件。国内镜像不可用时改用 [GitHub Release](https://github.com/bseazh/PrivacyGuard/releases/tag/offline-standard-v0.1.4)，下载后必须用 `SHA256SUMS` 校验。
+进入[国内平台选择页](https://privacyguard.snorlaxden.fun/offline-standard-v0.1.4/)，选择 macOS 或 Windows。系统专用页只展示该平台需要的文件（macOS 4 个、Windows 6 个）。国内镜像不可用时改用 [GitHub Release](https://github.com/bseazh/PrivacyGuard/releases/tag/offline-standard-v0.1.4)，下载后必须用 `SHA256SUMS` 校验。
 
 不想自己操作命令时，复制[完整安装任务书](./copy-paste-agent-prompt.md)给支持终端操作的 Agent。Agent 会先说明路径、预计时间和系统修改，获得确认后再执行。
 
 ## 为什么不能只下载运行包？
 
-运行包不包含全部模型权重。standard 还需要 HaS 文本识别模型和 PaddleOCR 模型；请下载系统专用页列出的全部 4 个文件并放在同一目录。
+运行包不包含全部模型权重。standard 还需要 HaS 文本识别模型和 PaddleOCR 模型；请下载系统专用页列出的全部文件（macOS 4 个、Windows 6 个）并放在同一目录。
 
 ## 离线版还要安装哪些依赖？
 
-大部分依赖已经包含：构建后的前端、Python 3.11 安装器、llama.cpp、HaS、PaddleOCR，以及 Windows 约 164 个或 macOS 约 166 个 Python wheel。用户只下载 4 个发行文件。standard 离线版不需要 Node.js、Git、Homebrew、WSL、Docker、CUDA 或 NVIDIA GPU。Windows 若缺少 Microsoft Visual C++ 2015–2022 x64 Runtime，需要从微软官方下载；macOS 当前包要求 macOS 14+ Apple Silicon。详见 [环境要求](./requirements.md)。
+大部分依赖已经包含：构建后的前端、Python 3.11 安装器、llama.cpp、HaS、PaddleOCR，以及 Windows 约 164 个或 macOS 约 166 个 Python wheel。用户下载 macOS 4 个或 Windows 6 个发行文件。standard 离线版不需要 Node.js、Git、Homebrew、WSL、Docker、CUDA 或 NVIDIA GPU。Windows 若缺少 Microsoft Visual C++ 2015–2022 x64 Runtime，需要从微软官方下载；macOS 当前包要求 macOS 14+ Apple Silicon。详见 [环境要求](./requirements.md)。
 
 ## 安装前 Agent 应该检查什么？
 
@@ -95,7 +95,7 @@ Windows 和 macOS 的安装过程都会保存在 `app/logs/install.log`。运行
 
 ## 离线包是否经过真实环境测试？
 
-v0.1.4 最终包正在重新验收。Windows 结果请查看 [测试记录](https://github.com/bseazh/PrivacyGuard/actions/workflows/offline-windows-smoke.yml)；只有实际安装、启动和停止步骤全部成功才算通过。不同用户电脑仍应运行预检脚本，以排除磁盘、系统版本和 Visual C++ Runtime 等本机差异。
+macOS v0.1.4 已通过本机安装、启动、就绪检测和停止；Windows 配合 r2 补充入口通过[完整测试](https://github.com/bseazh/PrivacyGuard/actions/runs/38122127746)。环境与限制见[验收记录](./validation-v0.1.4.md)。用户电脑仍须预检；本次未覆盖缺少 Python 的全新 Mac 图形安装器，也不能代表所有 Windows 10/11 配置。
 
 ## v0.1.2 / v0.1.3 的 Windows 双击安装为什么失败？
 

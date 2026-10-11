@@ -66,7 +66,7 @@ Windows v0.1.4 also requires the supplemental `Install-PrivacyGuard-v0.1.4-r2.cm
 
 Standard offline packages: choose [macOS or Windows on the China mirror](https://privacyguard.snorlaxden.fun/offline-standard-v0.1.4/), or use [GitHub Release v0.1.4](https://github.com/bseazh/PrivacyGuard/releases/tag/offline-standard-v0.1.4). See the [offline package guide](./docs/installation/offline-standard.md) for SHA-256 verification.
 
-The v0.1.4 final packages are undergoing validation. Use the [Windows test results](https://github.com/bseazh/PrivacyGuard/actions/workflows/offline-windows-smoke.yml) and installation FAQ for the current status. The macOS package supports Apple Silicon with macOS 14 or newer; Intel Macs are unsupported. The China mirror has not yet been synchronized for v0.1.4; use GitHub until its files and checksums are verified.
+The final macOS v0.1.4 package passed local Apple Silicon installation, startup, health checks and shutdown. Windows v0.1.4 with the supplemental r2 installer passed [the complete smoke test](https://github.com/bseazh/PrivacyGuard/actions/runs/38122127746), including PID protection and failed-start cleanup. See [validation details and limits](./docs/installation/validation-v0.1.4.md). Intel Macs are unsupported. The China mirror is not synchronized yet; use GitHub.
 
 After extraction, non-technical users can use the launchers in the app folder: `Install-PrivacyGuard-v0.1.4-r2.cmd` / `Launch-PrivacyGuard.cmd` / `Check-PrivacyGuard.cmd` on Windows, or the matching `.command` files on macOS. The launcher safely selects fallback localhost ports when defaults are occupied and writes the actual URL plus a health report under `.run` and `logs`.
 

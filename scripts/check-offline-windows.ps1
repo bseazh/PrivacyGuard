@@ -81,8 +81,10 @@ if ($InstallationGate) {
                 $Line = $Manifest | Where-Object { $_ -match "\s+$([regex]::Escape($Name))$" } | Select-Object -First 1
                 if (-not $Line) { Fail "SHA256SUMS has no entry for $Name"; continue }
                 $Expected = ($Line -split "\s+")[0].ToLowerInvariant()
-                $Actual = (Get-FileHash -Algorithm SHA256 $Path).Hash.ToLowerInvariant()
-                if ($Expected -eq $Actual) { Ok "SHA-256: $Name" } else { Fail "SHA-256 mismatch: $Name" }
+                try {
+                    $Actual = (Get-FileHash -LiteralPath ([IO.Path]::GetFullPath($Path)) -Algorithm SHA256 -ErrorAction Stop).Hash.ToLowerInvariant()
+                    if ($Expected -eq $Actual) { Ok "SHA-256: $Name" } else { Fail "SHA-256 mismatch: $Name" }
+                } catch { Fail "Unable to compute SHA-256 for ${Name}: $($_.Exception.Message)" }
             }
         }
     }

@@ -77,9 +77,9 @@ Get-FileHash .\PrivacyGuard-standard-*-v0.1.4* -Algorithm SHA256
 
 检测使用 `Check-PrivacyGuard.cmd`，停止使用 `Stop-PrivacyGuard.cmd`。
 
-Windows standard 离线包使用 CPU 兼容运行方式，不依赖 WSL 或 NVIDIA GPU。v0.1.4 最终包正在验收，结果以 [Windows 测试记录](https://github.com/bseazh/PrivacyGuard/actions/workflows/offline-windows-smoke.yml)为准，不应把早期失败记录解释为安装通过。
+Windows standard 使用 CPU，无需 WSL 或 NVIDIA GPU。v0.1.4 配合 r2 补充安装入口已通过 [完整 Windows 测试](https://github.com/bseazh/PrivacyGuard/actions/runs/38122127746)：离线安装、启动、就绪检测、端口切换、安全停止及失败清理。
 
-macOS v0.1.4 最终包正在重新验收；OCR 使用“Mac CPU 兼容模式”。只支持 macOS 14+ 的 Apple Silicon，不支持 Intel Mac。
+macOS v0.1.4 最终包已通过本机离线安装、启动、检测和停止；OCR 使用“Mac CPU 兼容模式”。只支持 macOS 14+ Apple Silicon，不支持 Intel Mac。详细环境及未覆盖场景见[验收记录](./validation-v0.1.4.md)。
 
 ## 构建
 
