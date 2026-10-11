@@ -84,6 +84,8 @@ jobs:
           Set-Location $app
           Copy-Item (Join-Path $env:PRIVACYGUARD_TEST_ROOT "Install-PrivacyGuard-v0.1.4.cmd") .
           $env:PRIVACYGUARD_NONINTERACTIVE = "1"
+          # Match Explorer: Windows PowerShell must not inherit PowerShell 7 modules.
+          Remove-Item Env:PSModulePath -ErrorAction SilentlyContinue
           cmd.exe /c .\Install-PrivacyGuard-v0.1.4.cmd
           if ($LASTEXITCODE -ne 0) { throw "The one-click installer failed with exit code $LASTEXITCODE." }
           "PRIVACYGUARD_APP_ROOT=$app" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
