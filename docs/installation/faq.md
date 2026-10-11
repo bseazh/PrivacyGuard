@@ -95,7 +95,7 @@ Windows 和 macOS 的安装过程都会保存在 `app/logs/install.log`。运行
 
 ## 离线包是否经过真实环境测试？
 
-macOS v0.1.4 已通过本机安装、启动、就绪检测和停止；Windows 配合 r2 补充入口通过[完整测试](https://github.com/bseazh/PrivacyGuard/actions/runs/38122127746)。环境与限制见[验收记录](./validation-v0.1.4.md)。用户电脑仍须预检；本次未覆盖缺少 Python 的全新 Mac 图形安装器，也不能代表所有 Windows 10/11 配置。
+macOS v0.1.4 已通过本机安装、启动、就绪检测和停止；Windows 配合 r2 补充入口通过[完整测试](https://github.com/bseazh/PrivacyGuard/actions/runs/38122856318)。环境与限制见[验收记录](./validation-v0.1.4.md)。用户电脑仍须预检；本次未覆盖缺少 Python 的全新 Mac 图形安装器，也不能代表所有 Windows 10/11 配置。
 
 ## v0.1.2 / v0.1.3 的 Windows 双击安装为什么失败？
 
