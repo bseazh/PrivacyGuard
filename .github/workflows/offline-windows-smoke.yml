@@ -100,7 +100,14 @@ jobs:
           $blocker = Start-Process -PassThru -WindowStyle Hidden -FilePath "python" -ArgumentList @("-m","http.server","8000","--bind","127.0.0.1")
           New-Item -ItemType Directory -Force -Path .\.run | Out-Null
           $blocker.Id | Set-Content .\.run\test-blocker.pid
-          Start-Sleep -Seconds 2
+          $blockerReady = $false
+          for ($attempt = 0; $attempt -lt 60; $attempt++) {
+            if ($blocker.HasExited) { throw "Port blocker exited before listening." }
+            $listener = Get-NetTCPConnection -LocalPort 8000 -State Listen -ErrorAction SilentlyContinue
+            if ($listener | Where-Object { $_.OwningProcess -eq $blocker.Id }) { $blockerReady = $true; break }
+            Start-Sleep -Seconds 1
+          }
+          if (-not $blockerReady) { throw "Port blocker did not begin listening within 60 seconds." }
           .\Start-PrivacyGuard.ps1 -NoBrowser
           $runtime = Get-Content .\.run\runtime.json -Raw | ConvertFrom-Json
           if ($runtime.backend_port -eq 8000) { throw "Port fallback was not used while 8000 was occupied." }
