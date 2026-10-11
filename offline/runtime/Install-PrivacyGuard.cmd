@@ -4,7 +4,7 @@ title PrivacyGuard 安装向导
 cd /d "%~dp0"
 if not exist "%~dp0logs" mkdir "%~dp0logs"
 echo [1/2] 正在执行安装前强制检查...
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0Check-Offline-Windows.ps1" -TargetDirectory "%~dp0" -PackageDirectory "%~dp0.." -InstallationGate
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0Check-Offline-Windows.ps1" -TargetDirectory "%~dp0." -PackageDirectory "%~dp0..\." -InstallationGate
 if errorlevel 1 goto preflight_failed
 echo [2/2] 预检通过，开始离线安装。
 echo 正在安装 PrivacyGuard，请勿关闭窗口。
