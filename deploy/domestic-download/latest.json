@@ -2,6 +2,10 @@
   "version": "v0.1.5",
   "published_at": "2026-10-15",
   "base_url": "https://privacyguard.snorlaxden.fun/v0.1.5/",
+  "source": {
+    "file": "PrivacyGuard-v0.1.5-source.tar.gz",
+    "sha256": "0490bef18138ef53388ac3ea5d39ded308393488c45f9beee73e62bf635cc79b"
+  },
   "platforms": {
     "macos_arm64": {
       "status": "available",

@@ -4,6 +4,16 @@
 
 正式文件只从 `https://privacyguard.snorlaxden.fun/` 获取。先读取 `latest.json`，确认目标平台状态为 `available`，下载后必须按同目录 `SHA256SUMS` 校验。状态为 `pending_validation` 时停止，不得改用旧版本冒充当前版本。
 
+本机尚无仓库时，macOS/Linux Agent 可从国内站下载源码包：
+
+```bash
+curl -fLO https://privacyguard.snorlaxden.fun/v0.1.5/PrivacyGuard-v0.1.5-source.tar.gz
+curl -fLO https://privacyguard.snorlaxden.fun/v0.1.5/SHA256SUMS
+shasum -a 256 -c SHA256SUMS --ignore-missing
+tar -xzf PrivacyGuard-v0.1.5-source.tar.gz
+cd PrivacyGuard-v0.1.5
+```
+
 Agent 安全入口优先使用 Python 3.11：
 
 ```bash

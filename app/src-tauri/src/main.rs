@@ -26,7 +26,10 @@ fn start_api(app: &tauri::AppHandle) -> Option<Child> {
     } else {
         let resources = app.path().resource_dir().ok()?;
         let source = resources.join("sidecar/legalredaction-service");
-        let installed = app.path().app_local_data_dir().ok()?.join("sidecar/legalredaction-service");
+        let installed = app.path().app_local_data_dir().ok()?
+            .join("sidecar")
+            .join(env!("CARGO_PKG_VERSION"))
+            .join("legalredaction-service");
         let executable = installed.join("legalredaction-service");
         if !executable.is_file() {
             let _ = std::fs::remove_dir_all(&installed);
