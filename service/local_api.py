@@ -214,7 +214,7 @@ class Handler(BaseHTTPRequestHandler):
             elif self.path == "/analyze-upload":
                 name = Path(str(payload.get("name", "upload.txt"))).name
                 suffix = Path(name).suffix.lower()
-                if suffix not in {".txt", ".md", ".eml", ".docx", ".pdf"}: raise ValueError("unsupported file type")
+                if suffix not in {".txt", ".md", ".markdown", ".eml", ".docx", ".pdf"}: raise ValueError("unsupported file type")
                 raw = base64.b64decode(str(payload["data"]), validate=True)
                 job_id = request_id
                 logger.info("job_created id=%s name=%s suffix=%s size=%d", job_id, name, suffix, len(raw))

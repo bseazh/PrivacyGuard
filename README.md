@@ -14,26 +14,29 @@ PrivacyGuard 是面向中文法律材料的本地敏感信息识别、人工复�
 - 有文本层 PDF 的安全删除和原位假名写入；
 - AES-256-GCM 加密映射导出。
 
-## 快速安装
+## 一句话安装
 
-正式安装包统一从国内下载站获取，不使用 GitHub Release：
-
-<https://privacyguard.snorlaxden.fun/>
-
-当前 `v0.1.5` 已发布 macOS Apple Silicon 完整包（内含本地模型）；Windows x64 新架构包完成实机验收前不开放下载。
-
-### Agent 隐私处理（macOS / Linux / Windows WSL）
-
-需要 Python 3.11。macOS 本机执行：
+不提供 DMG 或捆绑应用。macOS Apple Silicon 用户在终端粘贴一条命令：
 
 ```bash
-chmod +x scripts/*.sh
-./scripts/bootstrap_privacyguard.sh
-./scripts/start_privacyguard.sh
-./scripts/test_privacyguard.sh
+curl -fsSL https://privacyguard.snorlaxden.fun/install.sh | bash
 ```
 
-它会启动只监听 `127.0.0.1:5002` 的 Presidio sidecar。现有 RedactionEverything 继续使用 `127.0.0.1:8000`，脚本不会重装、升级或覆盖它。MCP 提供 `privacy_scan_file`、`privacy_get_safe_content`、`privacy_scrub_text`、`privacy_redact_file`、`privacy_secure_ask`。
+脚本默认安装到 `~/Documents/PrivacyGuard`，会预检 Apple Silicon、内存、磁盘和 Python 3.11，从国内服务器断点下载源码与独立模型组件，强制校验 SHA-256，然后安装并启动规则引擎、Presidio、RedactionEverything 的 HaS/PaddleOCR、MLX/Qwen3、LiteLLM，以及 Codex MCP/Skill。安装器最后会真正运行 MCP 与 `privacy_secure_ask` 端到端测试。
+
+组件总下载量约 4GB，安装后建议保留至少 12GB 可用空间。当前一句话完整模式只支持 M1/M2/M3/M4 系列 Mac；Windows 与 Intel Mac 尚未验收，不会伪装成可用。
+
+以后启动：
+
+```bash
+~/Documents/PrivacyGuard/scripts/start_privacyguard.sh
+```
+
+### Agent 隐私处理
+
+MCP 提供 `privacy_scan_file`、`privacy_get_safe_content`、`privacy_scrub_text`、`privacy_redact_file`、`privacy_secure_ask`。
+
+本仓库是统一编排和版本管理入口：`privacyguard/` 管理 Presidio、RedactionEverything、LiteLLM 与安全引用适配，`service/` 管理本地识别与文档处理，`scripts/` 管理安装、启停和端到端验收。安装后 RedactionEverything 源码位于仓库内的 `redaction-everything/`，Python 依赖位于隔离虚拟环境；Qwen3、HaS、PaddleOCR 等大模型权重只从国内服务器下载到本地安装目录，不提交 GitHub。
 
 Agent 入口合并规则、Presidio 和 RedactionEverything NER；长文本按 2400 字符、300 字符重叠分块，重叠实体取覆盖区间，同名重复实体保持相同占位符。Apple Silicon 可额外启用已安装的 MLX 环境。MLX 使用保守识别模式：普通“合同/协议/测试/项目”等词不会单独作为项目名，低置信度的项目、机构、地址、法院或律所实体在生成安全副本时会阻断并要求人工确认：
 
@@ -44,7 +47,7 @@ export PRIVACYGUARD_MLX_PYTHON="$PWD/.venv-mlx/bin/python"
 
 该变量必须传给实际启动 MCP 的进程；只在另一个终端设置不会改变已运行的 Codex。未设置时不调用 MLX；设置后 MLX 失败会阻断，不会静默降级。
 
-`privacy_redact_file` 为 PDF/DOCX 生成经过复检的独立安全副本，再通过安全引用读取其路径。当前采用纯文本重建，不保留原排版；原附件、属性、批注等不会复制，图片、扫描件、矢量绘图、修订和复杂对象无法验证时阻断。此入口不同于下文的桌面端原位 PDF 导出。验证范围见 [文件级安全输出说明](docs/file-output-verification.md)。
+`privacy_redact_file` 为 PDF/DOCX 生成经过复检的独立安全副本，再通过安全引用读取其路径。TXT/Markdown/EML 被传给该工具时会自动转为安全文本引用，可直接交给 `privacy_secure_ask`，不会因没有文件容器而错误阻断。PDF/DOCX 当前采用纯文本重建，不保留原排版；原附件、属性、批注等不会复制，图片、扫描件、矢量绘图、修订和复杂对象无法验证时阻断。此入口不同于下文的桌面端原位 PDF 导出。验证范围见 [文件级安全输出说明](docs/file-output-verification.md)。
 
 ### 受控 LiteLLM 调用
 
@@ -56,15 +59,7 @@ CLI：`privacyguard ask <safe_reference> --task risk_summary`。MCP 工具是 `p
 
 Codex 配置模板在 [config/codex-mcp.toml](config/codex-mcp.toml)，Skill 源文件在 [skills/privacyguard/SKILL.md](skills/privacyguard/SKILL.md)。用户级配置需要按机器绝对路径填写，修改后重启 Codex。
 
-取得用户同意后可运行 `./scripts/install_codex_integration.sh`；脚本要求再次输入 `INSTALL`，且不会覆盖已有同名 MCP 或 Skill。
-
-### macOS（M1/M2/M3/M4，推荐）
-
-打开 <https://privacyguard.snorlaxden.fun/>，选择“macOS Apple Silicon”，下载并安装 DMG。首次启动若被 macOS 拦截，请在访达中右键 PrivacyGuard 并选择“打开”。安装包内已包含本地模型，不需要另外访问 GitHub 或 Hugging Face。
-
-### Windows 10/11
-
-Windows x64 新架构安装包仍在实机验收，下载页会显示“暂未开放下载”。不要使用 `v0.1.4` 或更早离线包冒充 `v0.1.5`。Windows 当前只能运行规则引擎，MLX 仅支持 Apple Silicon。
+取得用户同意后可单独运行 `./scripts/install_codex_integration.sh`；一键安装器使用非交互 `--yes` 模式，但仍拒绝覆盖已有同名 MCP 或 Skill。
 
 详细步骤见 [INSTALL.md](INSTALL.md)，常见问题见 [FAQ.md](FAQ.md)。让编码 Agent 自动安装时，把 [AGENT_INSTALL.md](AGENT_INSTALL.md) 交给 Agent。
 
@@ -100,7 +95,7 @@ source .venv-mlx/bin/activate
 python scripts/download_model.py
 ```
 
-正式用户无需单独下载模型；国内 macOS DMG 已包含当前 Qwen3 MLX 权重。开发者仍可使用 `scripts/download_model.py` 管理本地模型缓存。
+一键安装器从国内服务器下载独立 Qwen3、HaS 和 PaddleOCR 组件，不下载 DMG。开发者仍可使用 `scripts/download_model.py` 管理本地模型缓存。
 
 ## 安全与许可证提示
 
@@ -110,5 +105,5 @@ python scripts/download_model.py
 - 上游 `RedactionEverything` 通过用户已有且已授权的本地 HTTP 服务接入；本仓库不复制其受限制代码、模型或视觉链路。机构、商业或付费使用仍需遵守其单独许可。
 - 模型和依赖的再分发许可应在每次发布前重新核对。
 - Presidio 为 MIT License；本项目参考本地源码但适配代码写在自身 `privacyguard/adapters/` 中。
-- LiteLLM 本阶段只有后续边界说明，未部署为前置依赖，也未接管 Codex/WorkBuddy 内置模型请求。
+- LiteLLM 只保护 `privacy_secure_ask` 中由 PrivacyGuard 自己发起的请求，不接管 Codex/WorkBuddy 内置模型请求。
 - Skill/MCP 是协作式安全流程，无法强制阻止宿主 Agent 在调用工具前自行读取原文件。

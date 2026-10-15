@@ -1,21 +1,17 @@
 {
   "version": "v0.1.5",
   "published_at": "2026-10-15",
-  "base_url": "https://privacyguard.snorlaxden.fun/v0.1.5/",
-  "source": {
-    "file": "PrivacyGuard-v0.1.5-source.tar.gz",
-    "sha256": "9470a372ee4fa7f3448219ad0a85e42b3498d6d46db7d40bb2cd861eb1c13842"
-  },
+  "install_command": "curl -fsSL https://privacyguard.snorlaxden.fun/install.sh | bash",
   "platforms": {
-    "macos_arm64": {
-      "status": "available",
-      "file": "PrivacyGuard-v0.1.5-macos-arm64.dmg",
-      "sha256": "57236eb44c9919970545de06064732c7c68cd095815746ed237489f0694a1686"
-    },
-    "windows_x64": {
-      "status": "pending_validation",
-      "file": null,
-      "sha256": null
-    }
-  }
+    "macos_arm64": {"status": "available", "mode": "script"},
+    "macos_x64": {"status": "unsupported"},
+    "windows_x64": {"status": "pending_validation"}
+  },
+  "components": [
+    "PrivacyGuard-v0.1.5-source.tar.gz",
+    "RedactionEverything-v0.1.5-source.tar.gz",
+    "Qwen3-1.7B-bf16-v0.1.5.tar.gz",
+    "RedactionEverything-HaS-0.6B-v0.1.5.tar.gz",
+    "RedactionEverything-PaddleOCR-v0.1.5.tar.gz"
+  ]
 }

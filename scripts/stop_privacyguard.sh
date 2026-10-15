@@ -3,27 +3,28 @@ set -euo pipefail
 
 STATE_DIR="${PRIVACYGUARD_DATA_DIR:-$HOME/.privacyguard}"
 PID_FILE="$STATE_DIR/run/presidio.pid"
-[[ -f "$PID_FILE" ]] || { echo "PrivacyGuard Presidio 未由本脚本启动。"; exit 0; }
-PID="$(tr -cd '0-9' < "$PID_FILE")"
-if [[ -z "$PID" ]] || ! kill -0 "$PID" 2>/dev/null; then
-  rm -f "$PID_FILE"
-  echo "记录中的进程已不存在，已清理过期 PID。"
-  exit 0
-elif ps -p "$PID" -o command= 2>/dev/null | grep -q 'privacyguard-presidio'; then
-  kill "$PID"
-  echo "Presidio 已停止。"
+if [[ -f "$PID_FILE" ]]; then
+  PID="$(tr -cd '0-9' < "$PID_FILE")"
+  if [[ -z "$PID" ]] || ! kill -0 "$PID" 2>/dev/null; then
+    rm -f "$PID_FILE"
+    echo "Presidio 记录中的进程已不存在，已清理过期 PID。"
+  elif ps -p "$PID" -o command= 2>/dev/null | grep -q 'privacyguard-presidio'; then
+    kill "$PID"
+    rm -f "$PID_FILE"
+    echo "Presidio 已停止。"
+  else
+    echo "Presidio PID 身份不匹配，未结束任何进程。" >&2
+    exit 1
+  fi
 else
-  echo "PID 身份不匹配，未结束任何进程。" >&2
-  exit 1
+  echo "PrivacyGuard Presidio 未由本脚本启动。"
 fi
-rm -f "$PID_FILE"
 
 MLX_PID_FILE="$STATE_DIR/run/mlx-llm.pid"
 if command -v launchctl >/dev/null 2>&1 && launchctl list com.privacyguard.mlx-llm >/dev/null 2>&1; then
   launchctl remove com.privacyguard.mlx-llm
   rm -f "$MLX_PID_FILE"
   echo "本机 MLX LiteLLM 上游已停止。"
-  exit 0
 fi
 if [[ -f "$MLX_PID_FILE" ]]; then
   MLX_PID="$(tr -cd '0-9' < "$MLX_PID_FILE")"
@@ -40,3 +41,22 @@ if [[ -f "$MLX_PID_FILE" ]]; then
     rm -f "$MLX_PID_FILE"
   fi
 fi
+
+for service in redaction-api redaction-ocr redaction-has; do
+  SERVICE_PID_FILE="$STATE_DIR/run/$service.pid"
+  [[ -f "$SERVICE_PID_FILE" ]] || continue
+  SERVICE_PID="$(tr -cd '0-9' < "$SERVICE_PID_FILE")"
+  if [[ -z "$SERVICE_PID" ]] || ! kill -0 "$SERVICE_PID" 2>/dev/null; then
+    rm -f "$SERVICE_PID_FILE"
+    continue
+  fi
+  SERVICE_COMMAND="$(ps -p "$SERVICE_PID" -o command= 2>/dev/null || true)"
+  case "$service:$SERVICE_COMMAND" in
+    redaction-api:*uvicorn*app.main:app*|redaction-ocr:*ocr_server.py*|redaction-has:*start_has_python.py*)
+      kill "$SERVICE_PID"
+      rm -f "$SERVICE_PID_FILE"
+      echo "$service 已停止。"
+      ;;
+    *) echo "$service PID 身份不匹配，未结束任何进程。" >&2; exit 1 ;;
+  esac
+done

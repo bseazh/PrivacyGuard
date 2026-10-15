@@ -31,17 +31,25 @@ Windows 当前默认是规则模式，只识别格式稳定的敏感信息。跨
 
 脱敏 PDF 本身不能恢复原文。需要同时保存导出的 AES-256-GCM 加密映射，并妥善备份原始文件。映射加密密钥目前保存在当前应用的本地存储中；清理应用数据前必须先设计密钥备份流程。
 
-## 模型下载很慢或中断
+## 一句话安装下载很慢或中断
 
-重新运行 `python scripts/download_model.py` 会复用 Hugging Face 缓存。企业网络可设置 `HF_ENDPOINT` 使用可信镜像，但不要关闭 TLS 校验。
+直接重新执行同一条安装命令。组件缓存在 `~/Library/Caches/PrivacyGuardInstaller/v0.1.5`，`curl -C -` 会从已下载位置继续，不会从头开始。不要删除缓存、关闭 TLS 或跳过 SHA-256。
 
 ## 模型从哪里下载
 
-普通 macOS 用户不需要单独下载模型。国内下载站提供的完整 DMG 已包含约 3.2GB 的模型权重。开发环境需要单独管理模型时，`scripts/download_model.py` 会复用本机缓存。
+安装器从国内服务器下载三个独立组件：Qwen3 压缩包约 2.5GB（解压约 3.2GB）、HaS 约 0.9GB、PaddleOCR 约 0.5GB。它们不是 DMG 或捆绑应用；脚本校验后解压到安装目录。
 
-## 为什么不再使用 GitHub Release
+## 为什么不再使用 GitHub Release 或 DMG
 
-当前正式文件统一托管在 `https://privacyguard.snorlaxden.fun/`。国内服务器允许提供完整 DMG，并同时发布 SHA-256；这样避免 GitHub 单文件大小限制和部分网络环境下载失败。GitHub 源码仓库不作为正式安装包下载源。
+当前正式入口统一为 `https://privacyguard.snorlaxden.fun/install.sh`。国内服务器只托管安装脚本、源码和独立模型组件，以改善国内下载与断点续传；用户最终得到的是普通源码目录和 Python 虚拟环境，不是捆绑应用。
+
+## 是否需要 VPN
+
+正常情况下不需要。源码和大模型组件来自国内下载域名，Python 包优先使用清华镜像；只有镜像缺包时才回退官方 PyPI。若公司网络同时阻止国内域名和 PyPI，应由网络管理员放行 HTTPS，不要关闭证书校验。
+
+## 为什么 RedactionEverything 显示部分离线
+
+一句话安装启用的是当前安全链路实际需要的 HaS 与 PaddleOCR。LocateAnything 视觉定位模型约 7.3GB，不参与文本安全引用和 LiteLLM 验收，因此默认不下载。健康页可能把视觉服务标为离线，这不代表“识别 + Presidio + LiteLLM”链路失败。
 
 ## `pdftotext` 不存在
 

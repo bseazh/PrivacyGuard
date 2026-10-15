@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 
 
-SUPPORTED_SUFFIXES = {".txt", ".md", ".docx", ".pdf"}
+SUPPORTED_SUFFIXES = {".txt", ".md", ".markdown", ".eml", ".docx", ".pdf"}
 
 
 class SecurityError(ValueError):

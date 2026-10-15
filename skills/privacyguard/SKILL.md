@@ -8,7 +8,7 @@ description: Protect privacy in local TXT, Markdown, DOCX, and PDF files before 
 ## Required workflow
 
 1. Identify the absolute source path without opening or reading the source file.
-2. For analysis, call MCP tool `privacy_scan_file` with that path. For a downloadable safe PDF/DOCX copy, call `privacy_redact_file` instead.
+2. For analysis, call MCP tool `privacy_scan_file` with that path. For a downloadable safe PDF/DOCX copy, call `privacy_redact_file` instead. If `privacy_redact_file` receives TXT/Markdown/EML, it returns an approved sanitized-text reference rather than a file path; continue through that reference.
 3. If the result is not `approved`, stop. Report the reason without reading the source.
 4. Call `privacy_get_safe_content` using only the returned `safe_reference`.
 5. Continue the user's original analysis using the approved safe content.

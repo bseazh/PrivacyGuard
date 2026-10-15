@@ -66,8 +66,23 @@ class PrivacyGuardCoreTests(unittest.TestCase):
         self.assertEqual(result["status"], "approved")
         self.assertNotIn("alice@example.com", str(result))
 
+    def test_redact_text_routes_to_safe_text_reference(self):
+        source = self.root / "contract.txt"
+        source.write_text("联系人 唐三，邮箱 alice@example.com", encoding="utf-8")
+        result = self.core.redact_file(str(source))
+        self.assertEqual(result["status"], "approved")
+        self.assertEqual(result["output_kind"], "safe-text-reference")
+        safe = self.core.get_safe_content(result["safe_reference"])
+        self.assertEqual(safe["kind"], "text")
+        self.assertNotIn("alice@example.com", safe["content"])
+
     def test_txt_markdown_docx_and_text_pdf(self):
-        sources = [self.root / "case.txt", self.root / "case.md"]
+        sources = [
+            self.root / "case.txt",
+            self.root / "case.md",
+            self.root / "case.markdown",
+            self.root / "case.eml",
+        ]
         for source in sources:
             source.write_text("联系 alice@example.com", encoding="utf-8")
         document = Document()

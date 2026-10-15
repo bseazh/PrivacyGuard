@@ -11,7 +11,14 @@ if [[ ! -x "$VENV/bin/privacyguard-presidio" ]]; then
   exit 1
 fi
 
-if curl -fsS http://127.0.0.1:5002/health >/dev/null 2>&1; then
+if [[ -d "$ROOT_DIR/redaction-everything" ]]; then
+  "$ROOT_DIR/scripts/start_redaction_everything.sh"
+elif ! curl --noproxy '*' -fsS http://127.0.0.1:8000/health >/dev/null 2>&1; then
+  echo "RedactionEverything 未安装或未启动，语义识别将被阻断。" >&2
+  exit 1
+fi
+
+if curl --noproxy '*' -fsS http://127.0.0.1:5002/health >/dev/null 2>&1; then
   if [[ -f "$STATE_DIR/run/presidio.pid" ]] && ! kill -0 "$(tr -cd '0-9' < "$STATE_DIR/run/presidio.pid")" 2>/dev/null; then
     rm -f "$STATE_DIR/run/presidio.pid"
   fi
@@ -20,10 +27,10 @@ else
   nohup "$VENV/bin/privacyguard-presidio" >>"$STATE_DIR/logs/presidio.log" 2>&1 &
   echo $! >"$STATE_DIR/run/presidio.pid"
   for _ in {1..30}; do
-    curl -fsS http://127.0.0.1:5002/health >/dev/null 2>&1 && break
+    curl --noproxy '*' -fsS http://127.0.0.1:5002/health >/dev/null 2>&1 && break
     sleep 0.2
   done
-  curl -fsS http://127.0.0.1:5002/health >/dev/null
+  curl --noproxy '*' -fsS http://127.0.0.1:5002/health >/dev/null
 fi
 echo "PrivacyGuard MCP 可由 Codex 按配置自动启动；Presidio: http://127.0.0.1:5002"
 

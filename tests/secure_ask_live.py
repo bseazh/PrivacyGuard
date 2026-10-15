@@ -34,10 +34,22 @@ async def main():
                     raise RuntimeError(f"model failed: {result}")
                 if any(value in result["answer"] for value in ("唐三", "alice@example.com", "13800138000")):
                     raise RuntimeError("model returned original values")
+                text_source = test_root / "fictional.txt"
+                text_source.write_text(text, encoding="utf-8")
+                text_export = (await session.call_tool("privacy_redact_file", {"file_path": str(text_source)})).structured_content
+                if not text_export or text_export.get("status") != "approved" or text_export.get("output_kind") != "safe-text-reference":
+                    raise RuntimeError(f"text safe-output routing failed: {text_export}")
+                text_result = (await session.call_tool("privacy_secure_ask", {
+                    "safe_reference": text_export["safe_reference"], "task": "risk_summary",
+                })).structured_content
+                if not text_result or text_result.get("status") != "approved":
+                    raise RuntimeError(f"text model flow failed: {text_result}")
+                if any(value in text_result["answer"] for value in ("唐三", "alice@example.com", "13800138000")):
+                    raise RuntimeError("text model flow returned original values")
                 invalid = (await session.call_tool("privacy_secure_ask", {"safe_reference": str(source)})).structured_content
                 if not invalid or invalid.get("status") != "blocked":
                     raise RuntimeError("raw path accepted")
-                print(json.dumps({"mcp_export": True, "mcp_secure_ask": True, "raw_path_blocked": True,
+                print(json.dumps({"mcp_export": True, "text_safe_output": True, "mcp_secure_ask": True, "raw_path_blocked": True,
                                   "counts": export["counts"], "answer": result["answer"]}, ensure_ascii=False))
 
 

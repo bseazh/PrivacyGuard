@@ -156,8 +156,14 @@ class PrivacyGuard:
         try:
             path = validate_source_path(raw_path, self.settings.allowed_roots, self.settings.max_file_bytes)
             suffix = path.suffix.lower()
+            if suffix in {".txt", ".md", ".markdown", ".eml"}:
+                result = self.scan_file(str(path))
+                if result.get("status") == "approved":
+                    result["output_kind"] = "safe-text-reference"
+                    result["layout"] = "sanitized-text"
+                return result
             if suffix not in {".pdf", ".docx"}:
-                raise ValueError("安全文件导出仅支持 PDF/DOCX")
+                raise ValueError("安全输出仅支持 TXT/Markdown/EML/PDF/DOCX")
             text = inspect_source(path)
             if not text.strip() or len(text) > 2_000_000:
                 raise ValueError("文件文本为空或超限")

@@ -1,36 +1,26 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>PrivacyGuard 下载</title>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PrivacyGuard 一句话安装</title>
   <style>
-    :root{color:#17212f;background:#f4f6f8;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-    *{box-sizing:border-box}body{margin:0}.top{background:#17212f;color:#fff;padding:22px 24px}.top h1{margin:0;font-size:24px;letter-spacing:0}.top p{margin:7px 0 0;color:#c3ccd7;font-size:14px}.wrap{max-width:920px;margin:0 auto;padding:28px 20px}.release{display:flex;justify-content:space-between;gap:16px;align-items:center;border-bottom:1px solid #ccd4dd;padding-bottom:18px}.release h2{font-size:20px;margin:0}.release span{color:#536071;font-size:13px}.options{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:22px}.option{background:#fff;border:1px solid #d7dee6;border-radius:6px;padding:20px}.option h3{margin:0 0 8px;font-size:17px}.option p{color:#5d6978;line-height:1.65;font-size:14px;min-height:70px}.button{display:inline-block;background:#1769d2;color:#fff;text-decoration:none;border-radius:5px;padding:10px 14px;font-weight:600}.pending{display:inline-block;background:#e7eaee;color:#596575;border-radius:5px;padding:10px 14px}.details{margin-top:24px;border-top:1px solid #ccd4dd;padding-top:18px;color:#475466;font-size:14px;line-height:1.7}.hash{display:block;background:#fff;border:1px solid #d7dee6;border-radius:5px;padding:10px;word-break:break-all;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}.notice{color:#8a4e00;background:#fff7e8;border-left:4px solid #d59122;padding:10px 12px;margin-top:16px}@media(max-width:680px){.options{grid-template-columns:1fr}.release{align-items:flex-start;flex-direction:column}.option p{min-height:0}}
+    :root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#17212f;background:#f4f6f8}body{margin:0}.top{background:#17212f;color:#fff;padding:28px}.wrap{max-width:820px;margin:auto;padding:30px 20px}.card{background:#fff;border:1px solid #d7dee6;border-radius:8px;padding:24px;margin-bottom:18px}h1,h2{margin-top:0}.command{display:block;background:#101722;color:#e8f0f8;padding:18px;border-radius:6px;overflow:auto;font:14px ui-monospace,SFMono-Regular,Menlo,monospace}.ok{color:#176b3a}.muted{color:#5d6978;line-height:1.7}a{color:#1769d2}
   </style>
 </head>
 <body>
-  <header class="top"><h1>PrivacyGuard</h1><p>本地文档隐私识别与安全副本工具</p></header>
+  <header class="top"><h1>PrivacyGuard</h1><p>本地识别 + Presidio + RedactionEverything + LiteLLM</p></header>
   <main class="wrap">
-    <div class="release"><h2>标准版 v0.1.5</h2><span>发布日期：2026-10-15</span></div>
-    <section class="options" aria-label="选择操作系统">
-      <article class="option">
-        <h3>macOS Apple Silicon</h3>
-        <p>适用于 M1、M2、M3、M4 系列 Mac。安装包已包含本地语义模型，约 2.8GB。</p>
-        <a class="button" href="/v0.1.5/PrivacyGuard-v0.1.5-macos-arm64.dmg">下载 macOS 版</a>
-      </article>
-      <article class="option">
-        <h3>Windows x64</h3>
-        <p>新架构安装包正在 Windows 实机上构建和验收。完成前不提供旧版或未经验证的安装包。</p>
-        <span class="pending">暂未开放下载</span>
-      </article>
+    <section class="card">
+      <h2>macOS Apple Silicon 一句话安装</h2>
+      <p class="muted">适用于 M1、M2、M3、M4 系列 Mac。不提供 DMG，不安装捆绑应用。打开“终端”，复制下面整行并回车：</p>
+      <code class="command">curl -fsSL https://privacyguard.snorlaxden.fun/install.sh | bash</code>
+      <p class="ok">脚本自动预检、断点下载、SHA-256 校验、安装、启动并执行真实端到端验收。</p>
     </section>
-    <div class="notice">macOS 包使用本机完整性签名，尚未进行 Apple Developer ID 公证。首次启动请在访达中右键 PrivacyGuard，选择“打开”。</div>
-    <section class="details">
-      <p>下载完成后，可使用下面的 SHA-256 校验文件完整性：</p>
-      <code class="hash">57236eb44c9919970545de06064732c7c68cd095815746ed237489f0694a1686&nbsp;&nbsp;PrivacyGuard-v0.1.5-macos-arm64.dmg</code>
-      <p><a href="/v0.1.5/SHA256SUMS">下载 SHA256SUMS</a> · <a href="/v0.1.5/release-notes.md">查看更新说明</a></p>
-      <p>Agent 或开发者可下载 <a href="/v0.1.5/PrivacyGuard-v0.1.5-source.tar.gz">v0.1.5 源码包</a>。源码包不含模型；普通用户请使用上方完整 DMG。</p>
+    <section class="card">
+      <h2>安装内容</h2>
+      <p class="muted">默认目录：<code>~/Documents/PrivacyGuard</code>。下载约 4GB，包括源码、Qwen3、HaS 和 PaddleOCR 独立组件。LiteLLM 只保护 PrivacyGuard 的 <code>privacy_secure_ask</code>，不会接管 Codex 原生流量。</p>
+      <p class="muted">Windows 与 Intel Mac 尚未完成同等能力验收，当前不提供误导性入口。</p>
+      <p><a href="/v0.1.5/SHA256SUMS">组件 SHA256SUMS</a> · <a href="/latest.json">机器可读清单</a></p>
     </section>
   </main>
 </body>

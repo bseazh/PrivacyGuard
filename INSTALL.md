@@ -1,44 +1,38 @@
 # 安装指南
 
-正式下载入口：<https://privacyguard.snorlaxden.fun/>。安装包、版本清单和 SHA-256 均以该国内站点为准，不使用 GitHub Release。
+## 当前支持范围
 
-## Agent 模式（Presidio + MCP）
+一句话完整安装仅支持 macOS Apple Silicon（M1/M2/M3/M4）。建议至少 16GB 内存；安装器最低要求 12GB 内存和 12GB 可用磁盘。Windows 与 Intel Mac 尚未完成同等能力验收。
 
-安装 Python 3.11 后执行：
+## 安装
 
-```bash
-chmod +x scripts/*.sh
-./scripts/bootstrap_privacyguard.sh
-./scripts/start_privacyguard.sh
-./scripts/test_privacyguard.sh
-```
-
-Python 环境位于 `.venv`，不会覆盖桌面端使用的 `.venv-mlx`。若仓库旁存在 `000-Assets/presidio-main`，安装器引用这份本地源码；否则从 Python 包源安装锁定版 2.2.364。默认允许读取 `Documents`、`Desktop`、`Downloads`，可用 `PRIVACYGUARD_ALLOWED_ROOTS` 收窄或修改。
-
-停止服务：
+打开“终端”，粘贴：
 
 ```bash
-./scripts/stop_privacyguard.sh
+curl -fsSL https://privacyguard.snorlaxden.fun/install.sh | bash
 ```
 
-可选 Docker Compose 使用官方 GHCR 2.2.364 镜像，但原生 analyzer 不包含本项目的中文补充识别器。本机 Docker daemon 未运行时，应使用上述已验证的 Python sidecar。
+默认目录为 `~/Documents/PrivacyGuard`。不安装 DMG，不创建捆绑应用。脚本会下载约 4GB 的源码、HaS、PaddleOCR 和 Qwen3 模型组件，支持断点续传并逐一校验 SHA-256；Python 包优先使用清华镜像，失败时切换官方 PyPI。
 
-## macOS（推荐：Apple Silicon）
+安装器自动完成：预检、Python 环境、Presidio、RedactionEverything、MLX、LiteLLM、服务启动、MCP 测试、真实 LiteLLM 测试，以及 Codex MCP/Skill 注册。
 
-完整模式使用 Apple MLX，适用于 M1/M2/M3/M4 等 Apple Silicon Mac。至少建议 16GB 内存和 10GB 可用磁盘。进入国内下载站，下载 `PrivacyGuard-v0.1.5-macos-arm64.dmg`。该文件约 2.8GB，已包含本地模型。
+## 启停
 
-下载后可执行 `shasum -a 256 PrivacyGuard-v0.1.5-macos-arm64.dmg`，并与下载站的 `SHA256SUMS` 比对。首次启动请在访达中右键 PrivacyGuard，选择“打开”。
+```bash
+~/Documents/PrivacyGuard/scripts/start_privacyguard.sh
+~/Documents/PrivacyGuard/scripts/stop_privacyguard.sh
+```
 
-Intel Mac 可启动规则模式，但不能运行 MLX 语义模型。启动脚本会自动设置规则模式。
+本地端口：RedactionEverything `8000`、HaS `8080`、PaddleOCR `8082`、Presidio `5002`、MLX OpenAI-compatible API `8011`。所有服务只监听本机回环地址。
 
-## Windows 10/11
+## 验收结果
 
-Windows x64 的 `v0.1.5` 安装包尚未通过 Windows 实机安装和启动验收，因此下载站暂不开放。当前不能把旧版离线包作为 `v0.1.5` 使用。Windows 只能运行规则模式，语义识别能力与 macOS 不同。
+安装成功必须同时满足：
 
-## PDF 假名化说明
+1. Presidio、RedactionEverything、HaS、PaddleOCR 和 MLX 健康检查可用；
+2. MCP 可发现五个 PrivacyGuard 工具；
+3. 虚构 DOCX 能生成安全副本；
+4. LiteLLM 只接收安全引用，拒绝原文件路径；
+5. 模型回答不残留测试中的姓名、邮箱和手机号。
 
-- 当前支持有可搜索文本层的 PDF。
-- 导出时会先使用 PDF redaction 删除原文字，再原位写入语义假名或自然假名。
-- 如果任一确认实体无法在 PDF 中精确定位，程序会停止导出，防止产生“看起来遮住但原文仍存在”的伪脱敏文件。
-- 扫描 PDF 尚需 OCR 坐标链路，当前版本不会将扫描件误报为成功。
-- PyMuPDF 采用 AGPL/商业双许可证；若将软件闭源商用分发，请购买 Artifex 商业许可或替换 PDF 引擎。
+LiteLLM 只能保护 `privacy_secure_ask`，不能拦截 Codex 自身的模型流量。

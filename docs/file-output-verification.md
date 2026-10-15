@@ -44,7 +44,7 @@ CLI（仓库根目录）：
 .venv/bin/privacyguard get 返回的safe_reference
 ```
 
-实际 CLI 参数以 `.venv/bin/privacyguard --help` 为准。输出位于 `PRIVACYGUARD_DATA_DIR/approved`，默认 `~/.privacyguard/approved`；引用默认一小时过期，但文件没有自动清理。上游上传的原文/分块也可能被其持久保存，应遵守本地保留策略。
+实际 CLI 参数以 `.venv/bin/privacyguard --help` 为准。输出位于 `PRIVACYGUARD_DATA_DIR/approved`，默认 `~/.privacyguard/approved`；引用默认 15 分钟过期，可通过 `PRIVACYGUARD_REFERENCE_TTL` 调整，但文件没有自动清理。上游上传的原文/分块也可能被其持久保存，应遵守本地保留策略。
 
 本次本机测试结束后，Presidio 使用会话级 `launchctl submit` 留在后台（标签 `com.privacyguard.presidio`，未创建登录启动项）。健康接口 `http://127.0.0.1:5002/health` 已检查通过；停止该测试后台任务可执行 `launchctl remove com.privacyguard.presidio`。普通安装仍按仓库启动脚本使用。
 
@@ -56,5 +56,5 @@ CLI（仓库根目录）：
 - 本次验证 Core、真实上游和 MCP 客户端；未单独重跑宿主 Codex 的新文件导出端到端验收。
 - 本机标准 Codex 和 BigApple Codex 的 PrivacyGuard MCP 配置已启用现有 MLX Python，重启后生效；其他机器仍需按各自路径配置。
 - 桌面端旧导出不会自动获得这条批准引用；不能将它等同于本次新安全副本链路。
-- Skill/MCP 无法强制阻止宿主提前读取文件；未接管 Codex 内置流量，未实现 LiteLLM 安全请求工具。
+- Skill/MCP 无法强制阻止宿主提前读取文件；`privacy_secure_ask` 已通过 LiteLLM Guardrail 接入本地模型，但不接管 Codex/WorkBuddy 内置模型流量。
 - PyMuPDF 为 AGPL/商业双许可，分发前需核对许可。

@@ -32,7 +32,7 @@ PATTERNS: tuple[tuple[str, str, float], ...] = (
 
 def extract_text(path: Path) -> str:
     suffix = path.suffix.lower()
-    if suffix in {".txt", ".md", ".eml", ".csv", ".json", ".ics", ".vcf"}:
+    if suffix in {".txt", ".md", ".markdown", ".eml", ".csv", ".json", ".ics", ".vcf"}:
         return path.read_text(encoding="utf-8", errors="replace")
     if suffix == ".docx":
         with zipfile.ZipFile(path) as archive:

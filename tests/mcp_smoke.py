@@ -49,6 +49,12 @@ async def exercise(root: Path, test_root: Path) -> None:
             serialized = json.dumps(safe_payload, ensure_ascii=False)
             if "alice@example.com" in serialized or "13800138000" in serialized or "11010519491231002X" in serialized:
                 raise RuntimeError("safe MCP output still contains source PII")
+            routed = await session.call_tool("privacy_redact_file", {"file_path": str(root / "samples/fictional_contract.txt")})
+            routed_payload = routed.structured_content
+            if routed.is_error or not isinstance(routed_payload, dict) or routed_payload.get("status") != "approved":
+                raise RuntimeError(f"text safe-output routing failed: {routed_payload}")
+            if routed_payload.get("output_kind") != "safe-text-reference":
+                raise RuntimeError(f"unexpected text safe-output kind: {routed_payload}")
             for suffix in (".pdf", ".docx"):
                 source = test_root / f"fictional{suffix}"
                 source.write_bytes(rebuild_safe_file("联系人：唐三\n邮箱：alice@example.com", suffix))

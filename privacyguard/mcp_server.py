@@ -34,10 +34,10 @@ def privacy_scrub_text(text: str) -> dict[str, object]:
 
 @mcp.tool(structured_output=True)
 def privacy_redact_file(file_path: str) -> dict[str, object]:
-    """Create a verified text-only PDF/DOCX safe copy; block unverified complex content.
+    """Create an approved safe output for TXT/Markdown/EML/PDF/DOCX.
 
-    The output is reconstructed and does not preserve the original layout.
-    Retrieve it only via privacy_get_safe_content using the approved reference.
+    Text formats return a sanitized text reference. PDF/DOCX return a verified,
+    reconstructed file copy. Retrieve either only via privacy_get_safe_content.
     """
     return PrivacyGuard().redact_file(file_path)
 
