@@ -1,5 +1,7 @@
 # PrivacyGuard 文件格式与 PDF 接入流程报告
 
+> 后续更新：这是分阶段历史报告。统一处理流程已调整：所有文件必须经 RedactionEverything 解析/HaS，分析不重建文件；显式文本导出生成独立 TXT。PDF 分析同样执行完整源结构检查，当前不放行扫描页/图片/矢量内容。下文 `safe-text-reference` 和 OCR 可分析等旧描述不再代表当前能力。以 [统一处理流程与最新验收](unified-pipeline-verification.md) 为准。
+
 日期：2026-10-15  
 用途：供开发团队核对当前能力、Agent 调用路径、PDF 上传处理及已发现的问题。
 

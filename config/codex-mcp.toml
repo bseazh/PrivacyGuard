@@ -11,6 +11,7 @@ PRIVACYGUARD_PRESIDIO_URL = "http://127.0.0.1:5002"
 PRIVACYGUARD_REDACTION_BASE_URL = "http://127.0.0.1:8000"
 # Optional: use an existing Apple Silicon MLX environment.
 # PRIVACYGUARD_MLX_PYTHON = "/ABSOLUTE/PATH/TO/PrivacyGuard/.venv-mlx/bin/python"
+# PRIVACYGUARD_ENABLE_MLX_ENSEMBLE = "1" # Optional extra NER; HaS is the default.
 # Optional PrivacyGuard-owned local inference. Never put a real remote key in Git.
 # PRIVACYGUARD_LLM_MODEL = "openai//ABSOLUTE/PATH/TO/PrivacyGuard/models/qwen3/Qwen3-1.7B-bf16"
 # PRIVACYGUARD_LLM_BASE_URL = "http://127.0.0.1:8011/v1"

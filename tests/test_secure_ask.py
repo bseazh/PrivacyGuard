@@ -14,6 +14,7 @@ from privacyguard.config import Settings
 from privacyguard.core import PrivacyGuard
 from privacyguard.presidio_service import create_analyzer
 from privacyguard.safe_files import rebuild_safe_file, inspect_source
+from privacyguard.parsers import extract_local_text
 from privacyguard.secure_ask import secure_ask
 
 
@@ -68,6 +69,10 @@ class SecureAskTests(unittest.TestCase):
             def analyze(self, text):
                 return []
         self.core.semantic = NoSemantic()
+        class FakeRedaction:
+            def upload_and_parse(self, path):
+                return {"content": extract_local_text(path), "entities": []}
+        self.core.redaction = FakeRedaction()
         self.adapter = LiteLLMAdapter(LLMSettings("openai/recording-test", url + "/v1", "local-only"))
         self.reference = self.core.scrub_text("邮箱 alice@example.com，手机号13800138000；付款期限未约定。")
         self.assertEqual(self.reference["status"], "approved")
@@ -92,6 +97,7 @@ class SecureAskTests(unittest.TestCase):
         raw = json.dumps(self.requests)
         self.assertNotIn("alice@example.com", raw)
         self.assertNotIn("13800138000", raw)
+        self.assertIn("<EMAIL_001>", raw)
 
     def test_guardrail_failures_never_send(self):
         # Switch only after semantic preflight to specifically test guardrail failure.
@@ -157,6 +163,8 @@ class SecureAskTests(unittest.TestCase):
         result = self.run_unified(source)
         self.assertEqual(result["status"], "approved", result)
         self.assertIsNone(result["safe_file"])
+        self.assertFalse(list(self.core.store.root.glob("*.txt")))
+        self.assertFalse(list(self.core.store.root.glob("*.docx")))
         self.assertNotIn("content", result)
         self.assertNotIn("safe_reference", result)
         self.assertEqual(len(self.requests), 1)
@@ -182,7 +190,7 @@ class SecureAskTests(unittest.TestCase):
         # reference storage, Presidio and the LiteLLM HTTP path remain real.
         with patch.object(self.core.redaction, "upload_and_parse", return_value={
             "file_id": "fixture", "content": inspect_source(source), "entities": [],
-        }), patch.object(self.core.redaction, "execute_and_download", return_value=source.read_bytes()):
+        }):
             result = self.run_unified(source, create_safe_copy=True)
         self.assertEqual(result["status"], "approved", result)
         output = Path(result["safe_file"]["path"])

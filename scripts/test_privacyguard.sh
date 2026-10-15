@@ -6,7 +6,7 @@ cd "$ROOT_DIR"
 curl --noproxy '*' -fsS http://127.0.0.1:5002/health >/dev/null || { echo "Presidio 未启动" >&2; exit 1; }
 curl --noproxy '*' -fsS http://127.0.0.1:8000/health >/dev/null || { echo "RedactionEverything 未启动" >&2; exit 1; }
 .venv/bin/python -m pytest -q \
-  tests/test_privacyguard_core.py tests/test_presidio_adapter.py \
+  tests/test_privacyguard_core.py tests/test_presidio_adapter.py tests/test_redaction_adapter.py \
   tests/test_local_api.py tests/test_pdf_redactor.py tests/test_pseudonym.py tests/test_quality_audit.py tests/test_safe_files.py
 if .venv/bin/python -c 'import importlib.util; assert importlib.util.find_spec("litellm")' 2>/dev/null; then
   .venv/bin/python -m pytest -q tests/test_secure_ask.py

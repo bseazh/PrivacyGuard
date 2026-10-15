@@ -36,8 +36,8 @@ def privacy_scrub_text(text: str) -> dict[str, object]:
 def privacy_redact_file(file_path: str) -> dict[str, object]:
     """Create an approved safe output for TXT/Markdown/EML/PDF/DOCX.
 
-    Text formats return a sanitized text reference. PDF/DOCX return a verified,
-    reconstructed file copy. Retrieve either only via privacy_get_safe_content.
+    Text formats return an independent UTF-8 TXT copy. PDF/DOCX return a verified,
+    reconstructed file copy. Retrieve only via privacy_get_safe_content.
     """
     return PrivacyGuard().redact_file(file_path)
 

@@ -94,11 +94,19 @@ Docker CLI 存在不等于 Docker Desktop daemon 正在运行。本机已验证�
 
 ## 怎么判断是否真的启用了 MLX？
 
-必须在启动 MCP 的环境中设置 `PRIVACYGUARD_MLX_PYTHON` 为已有 MLX Python 的绝对路径，并重启 MCP/Codex。未设置时合并规则、Presidio、RedactionEverything；设置后才加入 MLX。Apple Silicon 实测四路合并已通过，但每次调用需加载模型，长文档更慢；超时或模型失败会阻断。
+必须在启动 MCP 的环境中同时设置 `PRIVACYGUARD_ENABLE_MLX_ENSEMBLE=1` 和 `PRIVACYGUARD_MLX_PYTHON`（已有 MLX Python 的绝对路径），并重启 MCP/Codex。默认使用 HaS、规则和 Presidio；仅设置 Python 路径不会启用额外 MLX 实体识别。这不影响 LiteLLM 使用 MLX/Qwen3 做分析。额外识别每次需加载模型，长文档更慢；显式启用后超时或模型失败会阻断。
 
 ## 显示安全副本阻断时如何排查？
 
-错误只显示阶段和异常类型，不暴露原值。`source-inspection` 查看文件是否包含上述不支持对象；`semantic-detection`/`text-rescan` 检查本地 Presidio、RedactionEverything NER、可选 MLX；`upstream-upload`/`upstream-export` 检查上游上传、脱敏与下载接口；`output-rebuild`/`file-rescan` 是输出结构或复检未通过。先用虚构样本复现，不要把真实文档内容贴进日志或远程对话。
+错误只显示阶段和异常类型，不暴露原值。当前 `source-preparation` 涵盖上游上传/解析/HaS、源文件结构检查、补充检测和文本复检；`semantic-review` 表示有低置信度实体需要人工确认；`text-rescan` 是文本残留检查；`output-rebuild`/`file-rescan` 是输出结构或复检未通过。旧版的 `source-inspection`、`upstream-export` 等阶段请结合历史报告排查。先用虚构样本复现，不要把真实文档内容贴进日志或远程对话。
+
+## 为什么很短的 PDF 也会阻断？
+
+现有 RedactionEverything 每页平均少于 100 字时判为扫描件，并在 parse API 返回空正文；其 vision API 返回识别框而非完整逐页 OCR 正文。PrivacyGuard 不会把空正文当作识别成功，也不会自行回退绕过上游。扫描件和被误分类的短 PDF 目前需等待完整 OCR 文本接口接通，不能承诺可分析。含图片或无文本页的混合 PDF 也会阻断，避免只分析可提取的部分。
+
+## 只分析会生成文件吗？TXT 能下载吗？
+
+`privacy_process_and_ask(..., create_safe_copy=false)` 仅保存内部批准文本和短期引用，不生成文档副本；聊天只返回回答与统计。明确要求下载时设置 `true`，TXT/MD/Markdown/纯文本 EML 生成独立 `.txt`，PDF/DOCX 生成纯文本重建副本。Presidio 或 HaS 不可用、复检失败时不会调用模型。内部安全文本和上游原文仍可能持久存储，并非零落盘。
 
 ## 引用过期后文件会自动删除吗？
 

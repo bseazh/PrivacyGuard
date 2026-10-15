@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from pathlib import Path
+from email import policy
+from email.parser import BytesParser
 import tempfile
 import uuid
 
@@ -57,12 +59,22 @@ class RedactionEverythingAdapter:
 
     def upload_and_parse(self, path: Path) -> dict:
         try:
+            suffix = path.suffix.lower()
+            if suffix == ".eml":
+                raw = path.read_bytes()
+                message = BytesParser(policy=policy.default).parsebytes(raw)
+                if (message.is_multipart() or message.get_content_type() != "text/plain"
+                        or message.get("Content-Transfer-Encoding", "7bit").lower() not in {"7bit", "8bit"}
+                        or b"=?" in raw):
+                    raise ValueError("编码邮件或 MIME 附件尚未验证")
+            # The upstream parser supports TXT, but not these extension aliases.
+            upload_suffix = ".txt" if suffix in {".md", ".markdown", ".eml"} else suffix
             with httpx.Client(trust_env=False, timeout=self.timeout) as client:
                 with path.open("rb") as stream:
                     response = client.post(
                         f"{self.base_url}/api/v1/files/upload",
                         headers=self.headers,
-                        files={"file": (f"privacyguard-input{path.suffix.lower()}", stream, "application/octet-stream")},
+                        files={"file": (f"privacyguard-input{upload_suffix}", stream, "application/octet-stream")},
                     )
                 response.raise_for_status()
                 upload = response.json()
@@ -71,15 +83,17 @@ class RedactionEverythingAdapter:
                     f"{self.base_url}/api/v1/files/{file_id}/parse",
                     headers=self.headers,
                 )
+                parsed.raise_for_status()
                 ner = client.get(
                     f"{self.base_url}/api/v1/files/{file_id}/ner",
                     headers=self.headers,
                 )
-            parsed.raise_for_status()
             ner.raise_for_status()
             result = parsed.json()
             ner_result = ner.json()
-            if ner_result.get("recognition_failed"):
+            if (not isinstance(result, dict) or not isinstance(result.get("content"), str)
+                    or not isinstance(ner_result, dict) or not isinstance(ner_result.get("entities"), list)
+                    or ner_result.get("recognition_failed")):
                 raise ValueError("RedactionEverything recognition failed")
             return {
                 "file_id": file_id,

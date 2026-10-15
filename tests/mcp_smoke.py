@@ -49,15 +49,28 @@ async def exercise(root: Path, test_root: Path) -> None:
             serialized = json.dumps(safe_payload, ensure_ascii=False)
             if "alice@example.com" in serialized or "13800138000" in serialized or "11010519491231002X" in serialized:
                 raise RuntimeError("safe MCP output still contains source PII")
-            routed = await session.call_tool("privacy_redact_file", {"file_path": str(root / "samples/fictional_contract.txt")})
+            text_source = test_root / "fictional.txt"
+            text_source.write_text("联系人：唐三\n邮箱：alice@example.com", encoding="utf-8")
+            routed = await session.call_tool("privacy_redact_file", {"file_path": str(text_source)})
             routed_payload = routed.structured_content
             if routed.is_error or not isinstance(routed_payload, dict) or routed_payload.get("status") != "approved":
                 raise RuntimeError(f"text safe-output routing failed: {routed_payload}")
-            if routed_payload.get("output_kind") != "safe-text-reference":
+            if routed_payload.get("output_kind") != "safe-file":
                 raise RuntimeError(f"unexpected text safe-output kind: {routed_payload}")
+            for suffix in (".md", ".markdown", ".eml"):
+                alias = test_root / ("fictional" + suffix)
+                alias.write_text(text_source.read_text(), encoding="utf-8")
+                scanned = (await session.call_tool("privacy_scan_file", {"file_path": str(alias)})).structured_content
+                if not scanned or scanned.get("status") != "approved":
+                    raise RuntimeError(f"text alias scan failed: {suffix}: {scanned}")
             for suffix in (".pdf", ".docx"):
                 source = test_root / f"fictional{suffix}"
-                source.write_bytes(rebuild_safe_file("联系人：唐三\n邮箱：alice@example.com", suffix))
+                # The upstream parser classifies <100 characters/page as scanned.
+                text = "联系人：唐三\n邮箱：alice@example.com\n" + "本合同仅用于虚构材料的隐私处理测试，不构成真实交易。\n" * 5
+                source.write_bytes(rebuild_safe_file(text, suffix))
+                scanned = (await session.call_tool("privacy_scan_file", {"file_path": str(source)})).structured_content
+                if not scanned or scanned.get("status") != "approved":
+                    raise RuntimeError(f"document analysis scan failed: {scanned}")
                 exported = await session.call_tool("privacy_redact_file", {"file_path": str(source)})
                 payload = exported.structured_content
                 if exported.is_error or not isinstance(payload, dict) or payload.get("status") != "approved":

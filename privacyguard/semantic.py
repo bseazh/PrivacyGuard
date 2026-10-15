@@ -55,7 +55,11 @@ class SemanticEnsemble:
         for offset, chunk in windows(text):
             payload = self.redaction.analyze_text(chunk)
             findings.extend(verified_findings(chunk, payload, "redaction-everything", offset))
-        python = os.getenv("PRIVACYGUARD_MLX_PYTHON")
+        # HaS is the default recognizer. An MLX interpreter is also used by
+        # model tooling, so its presence alone must not enable a second NER.
+        python = os.getenv("PRIVACYGUARD_MLX_PYTHON") if os.getenv("PRIVACYGUARD_ENABLE_MLX_ENSEMBLE") == "1" else None
+        if os.getenv("PRIVACYGUARD_ENABLE_MLX_ENSEMBLE") == "1" and not python:
+            raise ValueError("显式启用 MLX 识别但未配置 Python，已阻断")
         if python:
             root = Path(__file__).resolve().parents[1]
             result = subprocess.run(

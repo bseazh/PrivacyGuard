@@ -69,10 +69,14 @@ def inspect_pdf(raw: bytes) -> str:
 
 def inspect_source(path: Path) -> str:
     raw = path.read_bytes()
+    if path.suffix.lower() == ".txt":
+        return raw.decode("utf-8")
     return inspect_pdf(raw) if path.suffix.lower() == ".pdf" else inspect_docx(raw)
 
 
 def rebuild_safe_file(text: str, suffix: str) -> bytes:
+    if suffix == ".txt":
+        return text.encode("utf-8")
     output = io.BytesIO()
     if suffix == ".docx":
         document = Document()
@@ -96,6 +100,11 @@ def rebuild_safe_file(text: str, suffix: str) -> bytes:
 
 
 def verify_output(raw: bytes, suffix: str, original_values: list[str]) -> str:
+    if suffix == ".txt":
+        text = raw.decode("utf-8")
+        if any(value and value in text for value in original_values):
+            raise ValueError("安全副本仍包含已识别原值")
+        return text
     text = inspect_pdf(raw) if suffix == ".pdf" else inspect_docx(raw)
     if any(value and value in text for value in original_values):
         raise ValueError("安全副本仍包含已识别原值")

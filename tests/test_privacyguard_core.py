@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import tempfile
 import unittest
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 from pathlib import Path
 
 from service.redaction_core import detect_entities, is_valid_china_id
@@ -13,6 +13,7 @@ try:
     from privacyguard.config import Settings
     from privacyguard.core import PrivacyGuard
     from privacyguard.models import Finding
+    from privacyguard.parsers import extract_local_text
     from privacyguard.security import SecurityError, mask_secret, validate_source_path
     from privacyguard.store import ReferenceError, SafeReferenceStore
     CORE_TEST_DEPENDENCIES = True
@@ -44,6 +45,10 @@ class PrivacyGuardCoreTests(unittest.TestCase):
             def analyze(self, text):
                 return []
         self.core.semantic = NoSemantic()
+        class FakeRedaction:
+            def upload_and_parse(self, path):
+                return {"file_id": "fixture", "content": extract_local_text(path), "entities": []}
+        self.core.redaction = FakeRedaction()
 
     def tearDown(self):
         self.temp.cleanup()
@@ -67,14 +72,16 @@ class PrivacyGuardCoreTests(unittest.TestCase):
         self.assertEqual(result["status"], "approved")
         self.assertNotIn("alice@example.com", str(result))
 
-    def test_redact_text_routes_to_safe_text_reference(self):
+    def test_redact_text_creates_independent_verified_file(self):
         source = self.root / "contract.txt"
         source.write_text("联系人 唐三，邮箱 alice@example.com", encoding="utf-8")
         result = self.core.redact_file(str(source))
         self.assertEqual(result["status"], "approved")
-        self.assertEqual(result["output_kind"], "safe-text-reference")
+        self.assertEqual(result["output_kind"], "safe-file")
         safe = self.core.get_safe_content(result["safe_reference"])
-        self.assertEqual(safe["kind"], "text")
+        self.assertEqual(safe["kind"], "file")
+        self.assertNotEqual(Path(safe["path"]), source)
+        self.assertEqual(Path(safe["path"]).read_text(), safe["content"])
         self.assertNotIn("alice@example.com", safe["content"])
 
     def test_process_and_ask_hides_content_and_reference(self):
@@ -117,11 +124,6 @@ class PrivacyGuardCoreTests(unittest.TestCase):
         pdf.drawString(72, 760, "Contact alice@example.com")
         pdf.save()
 
-        class EmptyRedaction:
-            def upload_and_parse(self, path):
-                return {"content": "", "is_scanned": True, "entities": []}
-
-        self.core.redaction = EmptyRedaction()
         for source in (*sources, docx_path, pdf_path):
             with self.subTest(suffix=source.suffix):
                 result = self.core.scan_file(str(source))
@@ -193,16 +195,71 @@ class PrivacyGuardCoreTests(unittest.TestCase):
         document.add_paragraph("alice@example.com")
         path = self.root / "contract.docx"
         document.save(path)
-        class Redaction:
-            def upload_and_parse(self, path):
-                return {"file_id": "fake", "content": "alice@example.com"}
-            def execute_and_download(self, *args):
-                raise RuntimeError("private: alice@example.com")
-        self.core.redaction = Redaction()
-        result = self.core.redact_file(str(path))
+        with patch("privacyguard.core.verify_output", side_effect=ValueError("private: alice@example.com")):
+            result = self.core.redact_file(str(path))
         self.assertEqual(result["status"], "blocked")
         self.assertIsNone(result["safe_reference"])
         self.assertNotIn("alice@example.com", str(result))
+        self.assertEqual(list(self.core.store.root.iterdir()), [])
+
+    def test_failed_upstream_never_falls_back_to_local_text(self):
+        source = self.root / "contract.txt"
+        source.write_text("邮箱 alice@example.com")
+        for payload in ({"content": "", "entities": []},
+                        {"content": "邮箱 alice@example.com", "entities": [
+                            {"start": 0, "end": 2, "text": "wrong", "type": "PERSON"}]}):
+            with patch.object(self.core.redaction, "upload_and_parse", return_value=payload):
+                result = self.core.scan_file(str(source))
+            self.assertEqual(result["status"], "blocked")
+            self.assertIsNone(result["safe_reference"])
+        self.assertEqual(list(self.core.store.root.iterdir()), [])
+
+    def test_analysis_calls_upstream_without_rebuilding_file(self):
+        source = self.root / "contract.txt"
+        source.write_text("邮箱 alice@example.com")
+        with patch.object(self.core.redaction, "upload_and_parse", wraps=self.core.redaction.upload_and_parse) as parse, \
+                patch("privacyguard.core.rebuild_safe_file", side_effect=AssertionError("analysis must not export")):
+            result = self.core.scan_file(str(source))
+        self.assertEqual(result["status"], "approved")
+        parse.assert_called_once_with(source)
+        self.assertEqual(self.core.get_safe_content(result["safe_reference"])["kind"], "text")
+        self.assertFalse(list(self.core.store.root.glob("*.txt")))
+
+    def test_docx_headers_omitted_by_upstream_are_still_protected(self):
+        document = Document()
+        document.add_paragraph("合同正文")
+        document.sections[0].header.paragraphs[0].text = "邮箱 alice@example.com"
+        document.sections[0].footer.paragraphs[0].text = "电话 13800138000"
+        source = self.root / "headers.docx"
+        document.save(source)
+        with patch.object(self.core.redaction, "upload_and_parse", return_value={"content": "合同正文", "entities": []}):
+            result = self.core.redact_file(str(source))
+        self.assertEqual(result["status"], "approved", result)
+        content = self.core.get_safe_content(result["safe_reference"])["content"]
+        self.assertNotIn("alice@example.com", content)
+        self.assertNotIn("13800138000", content)
+        self.assertIn("邮箱", content)
+        self.assertIn("电话", content)
+
+    def test_source_mutation_during_parse_blocks_reference(self):
+        source = self.root / "contract.txt"
+        source.write_text("合同正文")
+        def mutate(path):
+            path.write_text("已改变")
+            return {"content": "合同正文", "entities": []}
+        with patch.object(self.core.redaction, "upload_and_parse", side_effect=mutate):
+            self.assertEqual(self.core.scan_file(str(source))["status"], "blocked")
+        self.assertEqual(list(self.core.store.root.iterdir()), [])
+
+    def test_partial_pdf_text_cannot_hide_an_empty_page(self):
+        source = self.root / "mixed.pdf"
+        pdf = canvas.Canvas(str(source))
+        pdf.drawString(72, 760, "Contract text")
+        pdf.showPage()
+        pdf.showPage()
+        pdf.save()
+        with patch.object(self.core.redaction, "upload_and_parse", return_value={"content": "Contract text", "entities": []}):
+            self.assertEqual(self.core.scan_file(str(source))["status"], "blocked")
         self.assertEqual(list(self.core.store.root.iterdir()), [])
 
     def test_low_confidence_semantic_entity_blocks_safe_export(self):
@@ -223,8 +280,8 @@ class PrivacyGuardCoreTests(unittest.TestCase):
         self.assertIsNone(result["safe_reference"])
 
     def test_accepts_verified_upstream_entity_with_none_confidence(self):
-        source = self.root / "case.pdf"
-        source.write_bytes(b"placeholder")
+        source = self.root / "case.txt"
+        source.write_text("当事人唐三提交合同")
 
         class Redaction:
             def upload_and_parse(self, path):

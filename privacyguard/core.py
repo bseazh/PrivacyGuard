@@ -3,18 +3,16 @@ from __future__ import annotations
 import hashlib
 import re
 import secrets
-import subprocess
 from pathlib import Path
 
-from .adapters.presidio import PresidioAdapter, PresidioUnavailable
-from .adapters.redaction_everything import RedactionEverythingAdapter, RedactionEverythingError
+from .adapters.presidio import PresidioAdapter
+from .adapters.redaction_everything import RedactionEverythingAdapter
 from .config import Settings
 from .models import Finding
-from .semantic import SemanticEnsemble, windows
+from .semantic import SemanticEnsemble, windows, verified_findings
 from .safe_files import inspect_source, rebuild_safe_file, verify_output
-from .parsers import extract_local_text
 from .rules import counts, detect_with_rules, merge_findings, replace_with_tokens
-from .security import SecurityError, validate_source_path
+from .security import validate_source_path
 from .store import ReferenceError, SafeReferenceStore
 
 
@@ -38,14 +36,13 @@ class PrivacyGuard:
         if approved_tokens:
             # Exclude only our generated placeholders from re-detection, preserving offsets.
             text = re.sub(r"<[A-Z_]+_[0-9]{3,}>", lambda match: " " * len(match.group()), text)
-        findings = detect_with_rules(text)
+        findings = self.semantic.analyze(text) if semantic else []
+        findings.extend(detect_with_rules(text))
         for offset, chunk in windows(text):
             for item in self.presidio.analyze(chunk):
                 if not 0 <= item.start < item.end <= len(chunk):
                     raise ValueError("Presidio 实体区间无效")
                 findings.append(Finding(item.entity_type, offset + item.start, offset + item.end, item.score, item.source))
-        if semantic:
-            findings.extend(self.semantic.analyze(text))
         for item in list(findings):
             if not 0 <= item.start < item.end <= len(text):
                 raise ValueError("实体区间无效")
@@ -111,64 +108,51 @@ class PrivacyGuard:
         except Exception:
             return self._blocked("识别服务或二次检查失败，已阻断")
 
+    def _prepare_file(self, raw_path: str):
+        """Use upstream parsing/HaS for both analysis and optional export.
+
+        Container inspection supplements upstream text; it never substitutes
+        for failed upstream parsing, OCR or recognition.
+        """
+        path = validate_source_path(raw_path, self.settings.allowed_roots, self.settings.max_file_bytes)
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        parsed = self.redaction.upload_and_parse(path)
+        text = parsed.get("content")
+        if not isinstance(text, str) or not text.strip():
+            raise ValueError("上游解析或 OCR 未产生可验证文本")
+        extra = verified_findings(text, parsed.get("entities", []), "redaction-everything-file")
+        suffix = path.suffix.lower()
+        if suffix in {".docx", ".pdf"}:
+            inspected = inspect_source(path)
+            missing = [line for line in inspected.splitlines() if line.strip() and line not in text]
+            if missing:
+                text += "\n" + "\n".join(missing)
+        if len(text) > 2_000_000:
+            raise ValueError("文件文本超限")
+        findings, safe_text = self._protect(text, extra, True)
+        if hashlib.sha256(path.read_bytes()).hexdigest() != digest:
+            raise ValueError("源文件在处理期间已改变")
+        return path, digest, text, findings, safe_text
+
     def scan_file(self, raw_path: str) -> dict:
         try:
-            path = validate_source_path(raw_path, self.settings.allowed_roots, self.settings.max_file_bytes)
-            if path.suffix.lower() == ".pdf":
-                parsed = self.redaction.upload_and_parse(path)
-                text = str(parsed.get("content") or "")
-                extra_findings: list[Finding] = []
-                parser = "redaction-everything"
-                if not text.strip():
-                    local_text = extract_local_text(path)
-                    if local_text.strip():
-                        text = local_text
-                        parser = "redaction-everything+local-text-layer"
-                    else:
-                        return self._blocked("扫描 PDF 尚未产生可验证文本，已阻断")
-                else:
-                    type_aliases = {"ID_CARD": "ID_NUMBER", "ORG": "ORGANIZATION"}
-                    for item in parsed.get("entities", []):
-                        start, end = int(item["start"]), int(item["end"])
-                        if not (0 <= start < end <= len(text)) or text[start:end] != item.get("text"):
-                            raise ValueError("RedactionEverything 实体位置无法验证")
-                        confidence = item.get("confidence")
-                        extra_findings.append(Finding(
-                            type_aliases.get(str(item["type"]), str(item["type"])),
-                            start,
-                            end,
-                            float(confidence) if confidence is not None else 0.75,
-                            "redaction-everything",
-                        ))
-            else:
-                text = inspect_source(path) if path.suffix.lower() == ".docx" else extract_local_text(path)
-                extra_findings = []
-                parser = "local"
-            result = self.scrub_text(text, extra_findings, semantic=True)
-            result.update({"file_type": path.suffix.lower().lstrip("."), "parser": parser})
-            return result
+            path, digest, _, findings, safe_text = self._prepare_file(raw_path)
+            summary = counts(findings)
+            reference = self.store.create(safe_text=safe_text, output_path=None,
+                                          source_digest=digest, counts=summary)
+            return {"status": "approved", "safe_reference": reference.token,
+                    "counts": summary, "expires_at": reference.expires_at,
+                    "file_type": path.suffix.lower().lstrip("."), "parser": "redaction-everything"}
         except Exception as exc:
             return self._blocked(f"文件读取或验证失败 ({type(exc).__name__})")
 
     def redact_file(self, raw_path: str) -> dict:
         output = None
-        stage = "source-inspection"
+        stage = "source-preparation"
         try:
-            path = validate_source_path(raw_path, self.settings.allowed_roots, self.settings.max_file_bytes)
+            path, digest, text, findings, safe_text = self._prepare_file(raw_path)
             suffix = path.suffix.lower()
-            if suffix in {".txt", ".md", ".markdown", ".eml"}:
-                result = self.scan_file(str(path))
-                if result.get("status") == "approved":
-                    result["output_kind"] = "safe-text-reference"
-                    result["layout"] = "sanitized-text"
-                return result
-            if suffix not in {".pdf", ".docx"}:
-                raise ValueError("安全输出仅支持 TXT/Markdown/EML/PDF/DOCX")
-            text = inspect_source(path)
-            if not text.strip() or len(text) > 2_000_000:
-                raise ValueError("文件文本为空或超限")
-            stage = "semantic-detection"
-            findings, safe_text = self._protect(text, [], True)
+            stage = "semantic-review"
             uncertain = [item for item in findings
                           if item.entity_type in UNCERTAIN_SEMANTIC_TYPES
                           and item.score < SEMANTIC_EXPORT_THRESHOLD]
@@ -178,31 +162,25 @@ class PrivacyGuard:
             stage = "text-rescan"
             if self.detect(safe_text, approved_tokens=True):
                 raise ValueError("安全文本二次检测未通过")
-            stage = "upstream-upload"
-            parsed = self.redaction.upload_and_parse(path)
-            # Upstream offsets belong to its own parser; re-detect that exact text.
-            upstream_text = str(parsed.get("content") or "")
-            upstream_findings = self.detect(upstream_text) if upstream_text.strip() else findings
-            stage = "upstream-export"
-            downloaded = self.redaction.execute_and_download(parsed["file_id"], upstream_text or text, upstream_findings)
-            if suffix == ".pdf" and not downloaded.startswith(b"%PDF-"):
-                raise ValueError("上游下载文件格式无效")
-            if suffix == ".docx" and not downloaded.startswith(b"PK"):
-                raise ValueError("上游下载文件格式无效")
-            # Never publish the downloaded package: rebuild a clean text-only copy.
+            # PrivacyGuard alone owns replacement and clean-copy generation.
             stage = "output-rebuild"
-            raw = rebuild_safe_file(safe_text, suffix)
-            verified_text = verify_output(raw, suffix, original_values)
+            is_document = suffix in {".pdf", ".docx"}
+            output_suffix = suffix if is_document else ".txt"
+            raw = rebuild_safe_file(safe_text, output_suffix)
+            verified_text = verify_output(raw, output_suffix, original_values)
             stage = "file-rescan"
             if self.detect(verified_text, approved_tokens=True):
                 raise ValueError("安全文件二次识别未通过")
-            output = self.store.root / f"{secrets.token_hex(24)}{suffix}"
+            output = self.store.root / f"{secrets.token_hex(24)}{output_suffix}"
             output.write_bytes(raw)
             output.chmod(0o600)
             reference = self.store.create(safe_text=verified_text, output_path=output,
-                source_digest=hashlib.sha256(path.read_bytes()).hexdigest(), counts=counts(findings))
+                source_digest=digest, counts=counts(findings))
             return {"status": "approved", "safe_reference": reference.token, "counts": counts(findings),
-                    "file_type": suffix[1:], "layout": "reconstructed-text-only", "expires_at": reference.expires_at}
+                    "file_type": suffix[1:], "output_kind": "safe-file",
+                    "parser": "redaction-everything",
+                    "layout": "reconstructed-text-only" if is_document else "sanitized-text",
+                    "expires_at": reference.expires_at}
         except Exception as exc:
             if output:
                 output.unlink(missing_ok=True)

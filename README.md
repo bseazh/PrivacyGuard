@@ -38,16 +38,19 @@ MCP 提供六个工具。Agent 默认只调用高层入口 `privacy_process_and_
 
 本仓库是统一编排和版本管理入口：`privacyguard/` 管理 Presidio、RedactionEverything、LiteLLM 与安全引用适配，`service/` 管理本地识别与文档处理，`scripts/` 管理安装、启停和端到端验收。安装后 RedactionEverything 源码位于仓库内的 `redaction-everything/`，Python 依赖位于隔离虚拟环境；Qwen3、HaS、PaddleOCR 等大模型权重只从国内服务器下载到本地安装目录，不提交 GitHub。
 
-Agent 入口合并规则、Presidio 和 RedactionEverything NER；长文本按 2400 字符、300 字符重叠分块，重叠实体取覆盖区间，同名重复实体保持相同占位符。Apple Silicon 可额外启用已安装的 MLX 环境。MLX 使用保守识别模式：普通“合同/协议/测试/项目”等词不会单独作为项目名，低置信度的项目、机构、地址、法院或律所实体在生成安全副本时会阻断并要求人工确认：
+所有文件先交给 RedactionEverything 解析与 HaS 识别，PrivacyGuard 合并规则和 Presidio 补充结果，统一生成 `<PERSON_001>` 等占位符并复检。长文本按 2400 字符、300 字符重叠分块，重叠实体取覆盖区间，同名重复实体保持相同占位符。默认仅分析内部安全文本，不生成 PDF/DOCX；用户要求下载时才重建并验证独立副本。完整流程与验收见 [统一处理流程](docs/unified-pipeline-verification.md)。
+
+Apple Silicon 可显式额外启用 MLX 实体识别。普通“合同/协议/测试/项目”等词不会单独作为项目名，低置信度的项目、机构、地址、法院或律所实体在生成安全副本时会阻断并要求人工确认：
 
 ```bash
 export PRIVACYGUARD_MLX_PYTHON="$PWD/.venv-mlx/bin/python"
+export PRIVACYGUARD_ENABLE_MLX_ENSEMBLE=1
 .venv/bin/privacyguard redact /绝对路径/合同.docx
 ```
 
-该变量必须传给实际启动 MCP 的进程；只在另一个终端设置不会改变已运行的 Codex。未设置时不调用 MLX；设置后 MLX 失败会阻断，不会静默降级。
+这两个变量必须传给实际启动 MCP 的进程；只在另一个终端设置不会改变已运行的 Codex。单独设置 Python 路径不会启用 MLX 实体识别；显式启用后 MLX 失败会阻断，不会静默降级。MLX/Qwen3 作为 LiteLLM 的分析模型与此开关相互独立。
 
-`privacy_redact_file` 为 PDF/DOCX 生成经过复检的独立安全副本，再通过安全引用读取其路径。TXT/Markdown/EML 被传给该工具时会自动转为安全文本引用，可直接交给 `privacy_secure_ask`，不会因没有文件容器而错误阻断。PDF/DOCX 当前采用纯文本重建，不保留原排版；原附件、属性、批注等不会复制，图片、扫描件、矢量绘图、修订和复杂对象无法验证时阻断。此入口不同于下文的桌面端原位 PDF 导出。验证范围见 [文件级安全输出说明](docs/file-output-verification.md)。
+`privacy_redact_file` 为 PDF/DOCX 生成经过复检的独立安全副本，TXT/Markdown/纯文本 EML 导出为独立 UTF-8 `.txt` 文件，再通过安全引用读取路径。PDF/DOCX 当前采用纯文本重建，不保留原排版；原附件、属性、批注等不会复制。源文件含未验证图片、扫描页、矢量绘图、修订或复杂对象时阻断；分析入口也不放行不完整 PDF/DOCX。MIME 多部件、附件、编码邮件暂不支持。此入口不同于下文的桌面端原位 PDF 导出。历史验证范围见 [文件级安全输出说明](docs/file-output-verification.md)。
 
 ### 受控 LiteLLM 调用
 

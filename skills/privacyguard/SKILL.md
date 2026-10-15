@@ -15,7 +15,9 @@ description: Protect privacy before analyzing local contracts, customer material
 
 For text pasted directly by the user, call `privacy_scrub_text`, then pass its approved reference directly to `privacy_secure_ask`. Do not call `privacy_get_safe_content` unless the user explicitly asks to inspect the sanitized text.
 
-An explicitly requested file export is returned by `privacy_process_and_ask` as `safe_file`. Explain that PDF/DOCX copies are reconstructed text-only and do not preserve layout. Never substitute an upstream download or desktop export for a verified safe file.
+All files must first pass RedactionEverything parsing and HaS recognition. PrivacyGuard owns pseudonyms, validation and orchestration; Presidio supplements detection and performs mandatory pre-send checks. Only approved text reaches LiteLLM. Analysis alone uses internal safe text and does not rebuild document files.
+
+An explicitly requested file export is returned by `privacy_process_and_ask` as `safe_file`. Text formats produce an independent UTF-8 TXT file; PDF/DOCX copies are reconstructed text-only and do not preserve layout. Encoded/multipart EML and PDFs containing unverified scans, images or drawings are currently blocked even for analysis. Never substitute an upstream download or desktop export for a verified safe file.
 
 The default file workflow uses PrivacyGuard's configured LiteLLM path internally. Do not analyze file contents with the host Agent model. For pasted text, `privacy_secure_ask` accepts only an approved reference and a fixed task (`risk_summary` or `summary`). If blocked or not configured, stop. Do not pass raw text, source paths, arbitrary prompts, model names or URLs to an LLM.
 

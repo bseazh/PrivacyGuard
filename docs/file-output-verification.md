@@ -1,5 +1,7 @@
 # 中文识别合并与安全文件输出验收
 
+> 2026-10-15 更新：下文是历史验收记录。当前实现已统一由 RedactionEverything 解析/HaS、PrivacyGuard 假名化与重建；不再调用上游 execute/download。文本导出现在生成独立 TXT；额外 MLX NER 需同时设置 `PRIVACYGUARD_ENABLE_MLX_ENSEMBLE=1`。最新行为与限制以 [统一处理流程](unified-pipeline-verification.md) 为准。
+
 日期：2026-10-13。本机 Apple Silicon，核心 Python 3.11，MLX 使用独立 `.venv-mlx`。未修改或重装既有 RedactionEverything。
 
 ## 实现范围
