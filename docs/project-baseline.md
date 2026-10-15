@@ -1,4 +1,4 @@
-# LegalRedaction 项目基线
+# PrivacyGuard 项目基线
 
 ## 已确认环境
 

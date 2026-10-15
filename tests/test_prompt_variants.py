@@ -1,6 +1,7 @@
 import unittest
 
 from service.mlx_ner import Qwen3NerBackend, conservative_filter
+from privacyguard.semantic import verified_findings
 
 
 class PromptVariantTests(unittest.TestCase):
@@ -39,6 +40,19 @@ class PromptVariantTests(unittest.TestCase):
             self.assertIn("补充协议", captured["prompt"])
         finally:
             module.stream_generate = original
+
+    def test_generic_project_words_are_not_semantic_entities(self):
+        findings = verified_findings("用于测试的合作协议", [
+            {"type": "PROJECT", "text": "测试", "start": 2, "end": 4, "confidence": .9},
+            {"type": "PROJECT", "text": "合作协议", "start": 5, "end": 9, "confidence": .9},
+        ], "mlx")
+        self.assertEqual(findings, [])
+
+    def test_named_project_is_retained(self):
+        findings = verified_findings("星斗计划项目", [
+            {"type": "PROJECT", "text": "星斗计划", "start": 0, "end": 4, "confidence": .9},
+        ], "mlx")
+        self.assertEqual([(item.entity_type, item.start, item.end) for item in findings], [("PROJECT", 0, 4)])
 
 
 if __name__ == "__main__":

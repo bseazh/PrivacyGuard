@@ -1,6 +1,6 @@
 export const POLICY_META = {
-  must_redact: {label: '必须脱敏', order: 0},
-  manual_review: {label: '人工判断', order: 1},
+  must_redact: {label: '自动脱敏', order: 0},
+  manual_review: {label: '需要人工确认', order: 1},
   do_not_redact: {label: '默认不脱敏', order: 2}
 };
 
@@ -48,12 +48,15 @@ export function normalizeResult(value) {
   const text=value.text||'';
   return {...value, text, entities:(value.entities||[]).map(entity=>{
     const valid=Number.isInteger(entity.start)&&Number.isInteger(entity.end)&&entity.start>=0&&entity.end>entity.start&&text.slice(entity.start,entity.end)===entity.value;
-    return {...entity, review:entity.review||'pending', policy:policyForType(entity.type), offsetValid:valid};
+    const policy=entity.policy||policyForType(entity.type);
+    const review=entity.review||(policy==='must_redact'?'confirmed':'pending');
+    return {...entity, review, policy, offsetValid:valid};
   })};
 }
 
 export function reviewStats(entities) {
-  const stats={pending:0,confirmed:0,rejected:0,total:entities.length};
+  const stats={pending:0,confirmed:0,rejected:0,total:entities.length,automatic:0,needsReview:0};
+  for(const entity of entities){if(entity.policy==='must_redact')stats.automatic++;if(entity.policy==='manual_review')stats.needsReview++;}
   for(const entity of entities) stats[entity.review] = (stats[entity.review]||0)+1;
   return stats;
 }

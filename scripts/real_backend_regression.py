@@ -17,7 +17,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_MANIFEST = ROOT / "tests/real_samples.json"
 DEFAULT_OUTPUT = ROOT / "reports/real-backend-regression"
-DEFAULT_LOG = ROOT / "logs/legalredaction.log"
+DEFAULT_LOG = ROOT / "logs/privacyguard.log"
 
 
 def request_json(url: str, *, payload: dict | None = None, headers: dict | None = None) -> tuple[int, dict]:

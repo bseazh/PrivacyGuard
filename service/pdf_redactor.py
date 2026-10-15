@@ -49,10 +49,8 @@ def redact_pdf_bytes(raw: bytes, entities: list[dict], mode: str = "semantic") -
 
         missing = [item.value for item in replacements if not matches[(item.type, item.value)]]
         if missing:
-            preview = "、".join(missing[:5])
-            suffix = "……" if len(missing) > 5 else ""
             raise PdfRedactionError(
-                f"PDF 中有 {len(missing)} 个实体无法精确定位（{preview}{suffix}）。"
+                f"PDF 中有 {len(missing)} 个实体无法精确定位。"
                 "这通常是扫描件或文本编码差异；为避免伪脱敏，已停止导出。"
             )
 

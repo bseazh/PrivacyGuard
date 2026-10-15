@@ -50,7 +50,7 @@ function renderDocument(){
 function renderReview(){
   if(!result)return;
   const stats=reviewStats(result.entities);
-  $('reviewSummary').textContent=`共 ${stats.total} 个 · 待复核 ${stats.pending} · 已确认 ${stats.confirmed} · 已忽略 ${stats.rejected}`;
+  $('reviewSummary').textContent=`共 ${stats.total} 个 · 自动脱敏 ${stats.automatic} · 需人工确认 ${stats.needsReview} · 待处理 ${stats.pending} · 已确认 ${stats.confirmed} · 已忽略 ${stats.rejected}`;
   const groups=groupedEntities(result.entities);
   $('policyStats').innerHTML=Object.entries(POLICY_META).map(([policy,meta])=>`<div class="policy-stat">${meta.label}<strong>${groups[policy].length}</strong></div>`).join('');
   $('entities').innerHTML=Object.entries(POLICY_META).sort((a,b)=>a[1].order-b[1].order).map(([policy,meta])=>{

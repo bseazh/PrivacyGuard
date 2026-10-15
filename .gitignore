@@ -5,6 +5,8 @@ models/**/*.gguf
 test-results/
 logs/
 .venv-mlx/
+.venv/
+*.egg-info/
 app/node_modules/
 app/dist/
 app/src-tauri/target/
@@ -17,3 +19,4 @@ tests/real_samples.json
 __pycache__/
 *.pyc
 .DS_Store
+.env

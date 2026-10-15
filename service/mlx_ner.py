@@ -6,14 +6,17 @@ import logging
 import re
 from pathlib import Path
 
-from mlx_lm import load
-from mlx_lm.generate import stream_generate
-from mlx_lm.sample_utils import greedy_sampler
+try:
+    from mlx_lm import load
+    from mlx_lm.generate import stream_generate
+    from mlx_lm.sample_utils import greedy_sampler
+except ImportError:  # Parser and policy tests also run on non-Apple platforms.
+    load = stream_generate = greedy_sampler = None
 
 from .redaction_core import Entity
 
 
-logger = logging.getLogger("legalredaction.api")
+logger = logging.getLogger("privacyguard.api")
 
 
 TYPE_NAMES = {
@@ -93,6 +96,8 @@ class Qwen3NerBackend:
     name = "qwen3-1.7b-bf16"
 
     def __init__(self, model_path: str | Path):
+        if load is None:
+            raise RuntimeError("MLX runtime 未安装；Apple Silicon 请安装 mlx-lm，其他平台请使用规则或远程 NER")
         self.model, self.tokenizer = load(str(model_path))
         self.last_response_valid = True
         self.last_response_error = None

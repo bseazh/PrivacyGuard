@@ -2,6 +2,17 @@
 
 本文件面向能执行终端命令的编码 Agent。目标是安装、验证并启动本仓库，不要上传用户文档或模型缓存。
 
+Agent 安全入口优先使用 Python 3.11：
+
+```bash
+chmod +x scripts/*.sh
+./scripts/bootstrap_privacyguard.sh
+./scripts/start_privacyguard.sh
+./scripts/test_privacyguard.sh
+```
+
+安装完成后，根据 [config/codex-mcp.toml](config/codex-mcp.toml) 配置宿主，并安装 [skills/privacyguard](skills/privacyguard)。修改用户全局配置前必须取得用户许可。不得先读取待保护文件来“确认内容”；只把路径交给 `privacy_scan_file`。
+
 ## 1. 检测平台
 
 ```bash

@@ -1,5 +1,26 @@
 # 安装指南
 
+## Agent 模式（Presidio + MCP）
+
+安装 Python 3.11 后执行：
+
+```bash
+chmod +x scripts/*.sh
+./scripts/bootstrap_privacyguard.sh
+./scripts/start_privacyguard.sh
+./scripts/test_privacyguard.sh
+```
+
+Python 环境位于 `.venv`，不会覆盖桌面端使用的 `.venv-mlx`。若仓库旁存在 `000-Assets/presidio-main`，安装器引用这份本地源码；否则从 Python 包源安装锁定版 2.2.364。默认允许读取 `Documents`、`Desktop`、`Downloads`，可用 `PRIVACYGUARD_ALLOWED_ROOTS` 收窄或修改。
+
+停止服务：
+
+```bash
+./scripts/stop_privacyguard.sh
+```
+
+可选 Docker Compose 使用官方 GHCR 2.2.364 镜像，但原生 analyzer 不包含本项目的中文补充识别器。本机 Docker daemon 未运行时，应使用上述已验证的 Python sidecar。
+
 ## macOS（推荐：Apple Silicon）
 
 完整模式使用 Apple MLX，适用于 M1/M2/M3/M4 等 Apple Silicon Mac。至少建议 16GB 内存和 10GB 可用磁盘。

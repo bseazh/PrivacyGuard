@@ -9,6 +9,7 @@ import threading
 import traceback
 import uuid
 import os
+import hashlib
 from logging.handlers import RotatingFileHandler
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -29,14 +30,14 @@ except ImportError as exc:
         "APPLICANT": "申请人", "RESPONDENT": "被申请人", "ATTORNEY": "代理人", "LEGAL_REPRESENTATIVE": "法定代表人",
     }
 
-ROOT = Path(os.environ.get("LEGALREDACTION_ROOT", Path(__file__).resolve().parents[1])).resolve()
+ROOT = Path(os.environ.get("PRIVACYGUARD_ROOT", os.environ.get("LEGALREDACTION_ROOT", Path(__file__).resolve().parents[1]))).resolve()
 HOST, PORT = "127.0.0.1", 8766
-MODEL = Path(os.environ.get("LEGALREDACTION_MODEL_DIR", ROOT / "models/qwen3/Qwen3-1.7B-bf16")).resolve()
+MODEL = Path(os.environ.get("PRIVACYGUARD_MODEL_DIR", os.environ.get("LEGALREDACTION_MODEL_DIR", ROOT / "models/qwen3/Qwen3-1.7B-bf16"))).resolve()
 NER_MODE = os.environ.get("PRIVACYGUARD_NER_BACKEND", "auto").strip().lower()
-LOG_DIR = Path(os.environ.get("LEGALREDACTION_LOG_DIR", ROOT / "logs")).resolve()
-LOG_FILE = LOG_DIR / "legalredaction.log"
+LOG_DIR = Path(os.environ.get("PRIVACYGUARD_LOG_DIR", os.environ.get("LEGALREDACTION_LOG_DIR", ROOT / "logs"))).resolve()
+LOG_FILE = LOG_DIR / "privacyguard.log"
 LOG_DIR.mkdir(parents=True, exist_ok=True)
-logger = logging.getLogger("legalredaction.api")
+logger = logging.getLogger("privacyguard.api")
 logger.setLevel(logging.INFO)
 if not logger.handlers:
     handler = RotatingFileHandler(LOG_FILE, maxBytes=2 * 1024 * 1024, backupCount=3, encoding="utf-8")
@@ -59,7 +60,7 @@ POLICY = {
 
 def recognize_with_fallback(text: str, entity_types: list[str], depth: int = 0) -> tuple[list[Entity], int, int]:
     engine = backend()
-    entities = engine.recognize(text, entity_types)
+    entities = engine.recognize(text, entity_types, prompt_variant="B")
     if engine.last_response_valid:
         return entities, 0, 0
     if len(text) <= 1200 or depth >= 2:
@@ -92,7 +93,7 @@ def backend() -> Qwen3NerBackend:
 
 def analyze(path: Path, job_id: str | None = None, display_name: str | None = None) -> dict:
     started = time.perf_counter()
-    log_name = display_name or path.name
+    log_name = "file-" + hashlib.sha256((display_name or path.name).encode()).hexdigest()[:12]
     logger.info("analyze_start id=%s name=%s suffix=%s size=%d", job_id or "direct", log_name, path.suffix.lower(), path.stat().st_size)
     text = extract_text(path)
     logger.info("extract_done id=%s name=%s chars=%d elapsed_ms=%d", job_id or "direct", log_name, len(text), round((time.perf_counter() - started) * 1000))
@@ -135,25 +136,39 @@ def analyze(path: Path, job_id: str | None = None, display_name: str | None = No
     logger.info("ner_done id=%s name=%s entities=%d elapsed_ms=%d", job_id or "direct", log_name, len(ner), round((time.perf_counter() - started) * 1000))
     entities = merge_entities(rules, ner)
     logger.info("analyze_done id=%s name=%s rules=%d ner=%d entities=%d elapsed_ms=%d", job_id or "direct", log_name, len(rules), len(ner), len(entities), round((time.perf_counter() - started) * 1000))
-    payload_entities = [entity.__dict__ | {"policy": POLICY.get(entity.type, "manual_review")} for entity in entities]
-    return {"path": str(path), "name": path.name, "text": text, "entities": payload_entities, "supported_types": list(TYPE_NAMES), "policy": POLICY, "diagnostics": {"parse_retries": parse_retries, "parse_failures": parse_failures, "chunks": chunks, "ner_mode": NER_MODE}}
+    payload_entities = []
+    review_counts = {"automatic": 0, "review": 0, "ignored_by_default": 0}
+    for entity in entities:
+        policy = POLICY.get(entity.type, "manual_review")
+        review = "confirmed" if policy == "must_redact" else "pending"
+        if policy == "must_redact": review_counts["automatic"] += 1
+        elif policy == "manual_review": review_counts["review"] += 1
+        else: review_counts["ignored_by_default"] += 1
+        payload_entities.append(entity.__dict__ | {"policy": policy, "review": review})
+    review_status = "REVIEW" if review_counts["review"] else "READY"
+    return {"path": str(path), "name": path.name, "text": text, "entities": payload_entities,
+            "review_status": review_status, "review_counts": review_counts,
+            "supported_types": list(TYPE_NAMES), "policy": POLICY,
+            "diagnostics": {"parse_retries": parse_retries, "parse_failures": parse_failures, "chunks": chunks, "ner_mode": NER_MODE}}
 
 
 def run_job(job_id: str, name: str, raw: bytes, suffix: str) -> None:
     temp_path = None
     try:
-        with tempfile.NamedTemporaryFile(prefix="legalredaction-", suffix=suffix, delete=False) as temporary:
+        with tempfile.NamedTemporaryFile(prefix="privacyguard-", suffix=suffix, delete=False) as temporary:
             temporary.write(raw); temp_path = Path(temporary.name)
         with _jobs_lock:
             _jobs[job_id].update({"phase": "extract", "message": "正在提取文本"})
-        logger.info("job_start id=%s name=%s suffix=%s size=%d", job_id, name, suffix, len(raw))
+        log_name = "file-" + hashlib.sha256(name.encode()).hexdigest()[:12]
+        logger.info("job_start id=%s name=%s suffix=%s size=%d", job_id, log_name, suffix, len(raw))
         result = analyze(temp_path, job_id, name)
         result["name"] = name; result["path"] = "local-upload"
         with _jobs_lock:
             _jobs[job_id].update({"status": "done", "phase": "done", "progress": 100, "message": f"识别完成：{len(result['entities'])} 个候选", "result": result})
-        logger.info("job_done id=%s name=%s entities=%d", job_id, name, len(result["entities"]))
+        logger.info("job_done id=%s name=%s entities=%d", job_id, log_name, len(result["entities"]))
     except Exception as exc:
-        logger.error("job_error id=%s name=%s type=%s error=%s\n%s", job_id, name, type(exc).__name__, exc, traceback.format_exc())
+        log_name = "file-" + hashlib.sha256(name.encode()).hexdigest()[:12]
+        logger.error("job_error id=%s name=%s type=%s", job_id, log_name, type(exc).__name__)
         with _jobs_lock:
             _jobs[job_id].update({"status": "error", "phase": "error", "message": str(exc)})
     finally:
@@ -227,7 +242,7 @@ class Handler(BaseHTTPRequestHandler):
 
 def main() -> None:
     logger.info("service_start host=%s port=%d model=%s log_file=%s", HOST, PORT, MODEL, LOG_FILE)
-    print(f"LegalRedaction local API: http://{HOST}:{PORT} (log: {LOG_FILE})")
+    print(f"PrivacyGuard local API: http://{HOST}:{PORT} (log: {LOG_FILE})")
     ThreadingHTTPServer((HOST, PORT), Handler).serve_forever()
 
 

@@ -37,8 +37,8 @@ fn start_api(app: &tauri::AppHandle) -> Option<Child> {
     let log_dir = app.path().app_log_dir().ok()?;
     let _ = std::fs::create_dir_all(&log_dir);
     Command::new(executable).args(args).current_dir(work_dir)
-        .env("LEGALREDACTION_MODEL_DIR", model_dir)
-        .env("LEGALREDACTION_LOG_DIR", log_dir)
+        .env("PRIVACYGUARD_MODEL_DIR", model_dir)
+        .env("PRIVACYGUARD_LOG_DIR", log_dir)
         .stdout(Stdio::null()).stderr(Stdio::null()).spawn().ok()
 }
 
@@ -51,7 +51,7 @@ fn main() {
             Ok(())
         })
         .build(tauri::generate_context!())
-        .expect("error while building LegalRedaction")
+        .expect("error while building PrivacyGuard")
         .run(|app, event| {
             if let tauri::RunEvent::Exit = event {
                 if let Some(state) = app.try_state::<ApiChild>() {

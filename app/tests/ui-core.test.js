@@ -7,7 +7,8 @@ const entities=[
   {type:'ORGANIZATION',value:'华星公司',start:6,end:10,policy:'manual_review',review:'rejected'}
 ];
 
-test('normalizes pending review state and validates offsets',()=>{const entity=normalizeResult({text:'张伟',entities:[{type:'PERSON',value:'张伟',start:0,end:2}]}).entities[0];assert.equal(entity.review,'pending');assert.equal(entity.offsetValid,true);});
+test('automatically confirms mandatory redaction and validates offsets',()=>{const entity=normalizeResult({text:'张伟',entities:[{type:'PERSON',value:'张伟',start:0,end:2}]}).entities[0];assert.equal(entity.review,'confirmed');assert.equal(entity.offsetValid,true);});
+test('keeps semantic entities in review state',()=>{const entity=normalizeResult({text:'星斗计划',entities:[{type:'PROJECT',value:'星斗计划',start:0,end:4}]}).entities[0];assert.equal(entity.review,'pending');assert.equal(entity.policy,'manual_review');});
 test('flags an entity whose offsets do not match source text',()=>assert.equal(normalizeResult({text:'张伟',entities:[{type:'PERSON',value:'李娜',start:0,end:2}]}).entities[0].offsetValid,false));
 test('groups candidates by policy',()=>assert.equal(groupedEntities(entities).must_redact.length,1));
 test('creates separate tokens and mapping',()=>{const out=buildRedaction('原告张伟诉华星公司',entities);assert.match(out.text,/<PERSON_001>/);assert.equal(out.mapping['<PERSON_001>'].value,'张伟');});

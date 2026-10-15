@@ -2,6 +2,8 @@
 
 PrivacyGuard 是面向中文法律材料的本地敏感信息识别、人工复核和假名化工具。原始文件、识别结果和映射默认只在本机处理。
 
+本仓库现在同时提供 Agent 安全入口：Microsoft Presidio、PrivacyGuard Core、MCP Server 和 Codex Skill。详细新手步骤见 [START_HERE.md](START_HERE.md)，产品与安全边界见 [PRD.md](PRD.md) 和 [ARCHITECTURE.md](ARCHITECTURE.md)。
+
 当前支持：
 
 - TXT、Markdown、EML、DOCX 和有文本层的 PDF；
@@ -13,6 +15,42 @@ PrivacyGuard 是面向中文法律材料的本地敏感信息识别、人工复�
 - AES-256-GCM 加密映射导出。
 
 ## 快速安装
+
+### Agent 隐私处理（macOS / Linux / Windows WSL）
+
+需要 Python 3.11。macOS 本机执行：
+
+```bash
+chmod +x scripts/*.sh
+./scripts/bootstrap_privacyguard.sh
+./scripts/start_privacyguard.sh
+./scripts/test_privacyguard.sh
+```
+
+它会启动只监听 `127.0.0.1:5002` 的 Presidio sidecar。现有 RedactionEverything 继续使用 `127.0.0.1:8000`，脚本不会重装、升级或覆盖它。MCP 提供 `privacy_scan_file`、`privacy_get_safe_content`、`privacy_scrub_text`、`privacy_redact_file`、`privacy_secure_ask`。
+
+Agent 入口合并规则、Presidio 和 RedactionEverything NER；长文本按 2400 字符、300 字符重叠分块，重叠实体取覆盖区间，同名重复实体保持相同占位符。Apple Silicon 可额外启用已安装的 MLX 环境。MLX 使用保守识别模式：普通“合同/协议/测试/项目”等词不会单独作为项目名，低置信度的项目、机构、地址、法院或律所实体在生成安全副本时会阻断并要求人工确认：
+
+```bash
+export PRIVACYGUARD_MLX_PYTHON="$PWD/.venv-mlx/bin/python"
+.venv/bin/privacyguard redact /绝对路径/合同.docx
+```
+
+该变量必须传给实际启动 MCP 的进程；只在另一个终端设置不会改变已运行的 Codex。未设置时不调用 MLX；设置后 MLX 失败会阻断，不会静默降级。
+
+`privacy_redact_file` 为 PDF/DOCX 生成经过复检的独立安全副本，再通过安全引用读取其路径。当前采用纯文本重建，不保留原排版；原附件、属性、批注等不会复制，图片、扫描件、矢量绘图、修订和复杂对象无法验证时阻断。此入口不同于下文的桌面端原位 PDF 导出。验证范围见 [文件级安全输出说明](docs/file-output-verification.md)。
+
+### 受控 LiteLLM 调用
+
+`privacy_secure_ask` 只接受 `privacy_scan_file`/`privacy_redact_file`/`privacy_scrub_text` 返回的安全引用与固定任务 `risk_summary` 或 `summary`。会再次验证引用、文件哈希、抽取内容，并用本地 Presidio 在 LiteLLM 请求前检查；任何错误阻断。不会接收用户任意原始 prompt、路径、模型地址或模型参数。仅在 PrivacyGuard 自己管理的请求内生效，不会接管 Codex 自带模型流量。
+
+首次安装已加 LiteLLM SDK。当前本机模型链路由既有 MLX Qwen3 OpenAI-compatible server 提供，在 MCP 启动环境配置 `PRIVACYGUARD_LLM_MODEL=openai//绝对路径/到/Qwen3-1.7B-bf16`、`PRIVACYGUARD_LLM_BASE_URL=http://127.0.0.1:8011/v1`、`PRIVACYGUARD_LLM_API_KEY=local-only`。外部模型必须设置 HTTPS 和独立密钥；发送脱敏后的内容仍意味着该内容离开本机。
+
+CLI：`privacyguard ask <safe_reference> --task risk_summary`。MCP 工具是 `privacy_secure_ask`。本地测试上游顺序和真实 MLX 端到端结果见 [LiteLLM 受控调用验收](docs/litellm-secure-ask.md)。
+
+Codex 配置模板在 [config/codex-mcp.toml](config/codex-mcp.toml)，Skill 源文件在 [skills/privacyguard/SKILL.md](skills/privacyguard/SKILL.md)。用户级配置需要按机器绝对路径填写，修改后重启 Codex。
+
+取得用户同意后可运行 `./scripts/install_codex_integration.sh`；脚本要求再次输入 `INSTALL`，且不会覆盖已有同名 MCP 或 Skill。
 
 ### macOS（M1/M2/M3/M4，推荐）
 
@@ -85,5 +123,8 @@ python scripts/download_model.py
 - 假名化 PDF 不能从输出文件本身复原；授权恢复需要原始文件和单独保存的加密映射。
 - 浏览器本地存储中的映射密钥尚未实现跨设备备份，清理应用数据前请谨慎处理。
 - PyMuPDF 为 AGPL/商业双许可证。闭源商业分发前需要购买 Artifex 商业许可，或替换为许可证兼容的 PDF 引擎。
-- 上游 `RedactionEverything` 仅作架构参考，未确认商业许可前不复制其受限制代码、模型或视觉链路。
+- 上游 `RedactionEverything` 通过用户已有且已授权的本地 HTTP 服务接入；本仓库不复制其受限制代码、模型或视觉链路。机构、商业或付费使用仍需遵守其单独许可。
 - 模型和依赖的再分发许可应在每次发布前重新核对。
+- Presidio 为 MIT License；本项目参考本地源码但适配代码写在自身 `privacyguard/adapters/` 中。
+- LiteLLM 本阶段只有后续边界说明，未部署为前置依赖，也未接管 Codex/WorkBuddy 内置模型请求。
+- Skill/MCP 是协作式安全流程，无法强制阻止宿主 Agent 在调用工具前自行读取原文件。

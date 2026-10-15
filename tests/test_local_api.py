@@ -45,7 +45,8 @@ class LocalApiJobTests(unittest.TestCase):
             last_response_valid = True
             last_response_error = None
 
-            def recognize(self, text, _types):
+            def recognize(self, text, _types, prompt_variant="A"):
+                self.prompt_variant = prompt_variant
                 self.last_response_valid = len(text) < 2000
                 self.last_response_error = None if self.last_response_valid else "truncated"
                 if not self.last_response_valid:

@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 import subprocess
 import zipfile
+from datetime import date
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from xml.etree import ElementTree
@@ -53,6 +54,8 @@ def detect_entities(text: str) -> list[Entity]:
     candidates: list[Entity] = []
     for entity_type, pattern, confidence in PATTERNS:
         for match in re.finditer(pattern, text, flags=re.IGNORECASE):
+            if entity_type == "ID_NUMBER" and not is_valid_china_id(match.group(0)):
+                continue
             candidates.append(Entity(entity_type, match.group(0), match.start(), match.end(), confidence))
     # Keep the highest-confidence, longest entity for overlapping matches.
     candidates.sort(key=lambda item: (-item.confidence, -(item.end - item.start), item.start))
@@ -62,6 +65,20 @@ def detect_entities(text: str) -> list[Entity]:
             continue
         selected.append(candidate)
     return sorted(selected, key=lambda item: item.start)
+
+
+def is_valid_china_id(value: str) -> bool:
+    """Validate an 18-digit mainland China citizen ID without exposing it."""
+    if not re.fullmatch(r"[1-9][0-9]{16}[0-9Xx]", value):
+        return False
+    try:
+        date.fromisoformat(f"{value[6:10]}-{value[10:12]}-{value[12:14]}")
+    except ValueError:
+        return False
+    weights = (7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2)
+    check_codes = "10X98765432"
+    expected = check_codes[sum(int(number) * weight for number, weight in zip(value[:17], weights)) % 11]
+    return value[-1].upper() == expected
 
 
 def tokenize(text: str, entities: list[Entity]) -> tuple[str, dict[str, dict[str, str]]]:
@@ -85,4 +102,3 @@ def scan_file(path: Path) -> dict:
     entities = detect_entities(text)
     redacted, mapping = tokenize(text, entities)
     return {"file": str(path), "characters": len(text), "entities": [asdict(item) for item in entities], "mapping": mapping, "redacted_text": redacted}
-
