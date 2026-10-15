@@ -3,9 +3,7 @@ set -euo pipefail
 
 project_dir="${0:A:h:h}"
 cd "$project_dir"
-source .venv-mlx/bin/activate
-
-pyinstaller --noconfirm --clean --onedir \
+"$project_dir/.venv-mlx/bin/python" -m PyInstaller --noconfirm --clean --onedir \
   --name legalredaction-service \
   --collect-all mlx \
   --collect-all mlx_lm \

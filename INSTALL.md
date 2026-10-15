@@ -1,5 +1,7 @@
 # 安装指南
 
+正式下载入口：<https://privacyguard.snorlaxden.fun/>。安装包、版本清单和 SHA-256 均以该国内站点为准，不使用 GitHub Release。
+
 ## Agent 模式（Presidio + MCP）
 
 安装 Python 3.11 后执行：
@@ -23,42 +25,15 @@ Python 环境位于 `.venv`，不会覆盖桌面端使用的 `.venv-mlx`。若�
 
 ## macOS（推荐：Apple Silicon）
 
-完整模式使用 Apple MLX，适用于 M1/M2/M3/M4 等 Apple Silicon Mac。至少建议 16GB 内存和 10GB 可用磁盘。
+完整模式使用 Apple MLX，适用于 M1/M2/M3/M4 等 Apple Silicon Mac。至少建议 16GB 内存和 10GB 可用磁盘。进入国内下载站，下载 `PrivacyGuard-v0.1.5-macos-arm64.dmg`。该文件约 2.8GB，已包含本地模型。
 
-```bash
-git clone https://github.com/bseazh/PrivacyGuard.git
-cd PrivacyGuard
-chmod +x scripts/*.sh
-./scripts/bootstrap_macos.sh
-./scripts/start_macos.sh
-```
-
-脚本会安装 Python、Node.js、Poppler、Rust，创建 `.venv-mlx`，安装前后端依赖并从 Hugging Face 下载约 3.2GB 的 Qwen3 MLX 权重。首次下载和首次推理会比较慢。
+下载后可执行 `shasum -a 256 PrivacyGuard-v0.1.5-macos-arm64.dmg`，并与下载站的 `SHA256SUMS` 比对。首次启动请在访达中右键 PrivacyGuard，选择“打开”。
 
 Intel Mac 可启动规则模式，但不能运行 MLX 语义模型。启动脚本会自动设置规则模式。
 
 ## Windows 10/11
 
-当前 Windows 安装提供可运行的规则模式，可识别身份证、手机号、邮箱、银行卡号、案号等确定格式。MLX 不支持 Windows，因此人名、机构、地址等语义识别暂未与 macOS 完全对齐。
-
-先在管理员 PowerShell 中安装基础环境：
-
-```powershell
-winget install Python.Python.3.12
-winget install OpenJS.NodeJS.LTS
-winget install oschwartz10612.Poppler
-```
-
-重新打开 PowerShell 后执行：
-
-```powershell
-git clone https://github.com/bseazh/PrivacyGuard.git
-cd PrivacyGuard
-powershell -ExecutionPolicy Bypass -File scripts\bootstrap_windows.ps1
-powershell -ExecutionPolicy Bypass -File scripts\start_windows.ps1
-```
-
-浏览器打开 Vite 输出的本地地址（通常为 `http://localhost:5173`）。所有文件仍在本机处理。
+Windows x64 的 `v0.1.5` 安装包尚未通过 Windows 实机安装和启动验收，因此下载站暂不开放。当前不能把旧版离线包作为 `v0.1.5` 使用。Windows 只能运行规则模式，语义识别能力与 macOS 不同。
 
 ## PDF 假名化说明
 

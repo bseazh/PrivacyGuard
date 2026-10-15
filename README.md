@@ -16,6 +16,12 @@ PrivacyGuard 是面向中文法律材料的本地敏感信息识别、人工复�
 
 ## 快速安装
 
+正式安装包统一从国内下载站获取，不使用 GitHub Release：
+
+<https://privacyguard.snorlaxden.fun/>
+
+当前 `v0.1.5` 已发布 macOS Apple Silicon 完整包（内含本地模型）；Windows x64 新架构包完成实机验收前不开放下载。
+
 ### Agent 隐私处理（macOS / Linux / Windows WSL）
 
 需要 Python 3.11。macOS 本机执行：
@@ -54,27 +60,11 @@ Codex 配置模板在 [config/codex-mcp.toml](config/codex-mcp.toml)，Skill 源
 
 ### macOS（M1/M2/M3/M4，推荐）
 
-```bash
-git clone https://github.com/bseazh/PrivacyGuard.git
-cd PrivacyGuard
-chmod +x scripts/*.sh
-./scripts/bootstrap_macos.sh
-./scripts/start_macos.sh
-```
+打开 <https://privacyguard.snorlaxden.fun/>，选择“macOS Apple Silicon”，下载并安装 DMG。首次启动若被 macOS 拦截，请在访达中右键 PrivacyGuard 并选择“打开”。安装包内已包含本地模型，不需要另外访问 GitHub 或 Hugging Face。
 
 ### Windows 10/11
 
-```powershell
-winget install Python.Python.3.12
-winget install OpenJS.NodeJS.LTS
-winget install oschwartz10612.Poppler
-git clone https://github.com/bseazh/PrivacyGuard.git
-cd PrivacyGuard
-powershell -ExecutionPolicy Bypass -File scripts\bootstrap_windows.ps1
-powershell -ExecutionPolicy Bypass -File scripts\start_windows.ps1
-```
-
-Windows 当前使用规则引擎；MLX 仅支持 Apple Silicon，所以人名、机构和地址等语义识别能力暂不与 macOS 完全相同。
+Windows x64 新架构安装包仍在实机验收，下载页会显示“暂未开放下载”。不要使用 `v0.1.4` 或更早离线包冒充 `v0.1.5`。Windows 当前只能运行规则引擎，MLX 仅支持 Apple Silicon。
 
 详细步骤见 [INSTALL.md](INSTALL.md)，常见问题见 [FAQ.md](FAQ.md)。让编码 Agent 自动安装时，把 [AGENT_INSTALL.md](AGENT_INSTALL.md) 交给 Agent。
 
@@ -110,13 +100,7 @@ source .venv-mlx/bin/activate
 python scripts/download_model.py
 ```
 
-若使用 GitHub Release 承载 3GB/7GB 权重，应拆成小于 2GB 的分片并发布 SHA-256 校验文件：
-
-```bash
-./scripts/package_model_release.sh /path/to/model
-```
-
-模型托管优先推荐 Hugging Face；Release 更适合作为固定版本镜像。
+正式用户无需单独下载模型；国内 macOS DMG 已包含当前 Qwen3 MLX 权重。开发者仍可使用 `scripts/download_model.py` 管理本地模型缓存。
 
 ## 安全与许可证提示
 

@@ -2,6 +2,8 @@
 
 本文件面向能执行终端命令的编码 Agent。目标是安装、验证并启动本仓库，不要上传用户文档或模型缓存。
 
+正式文件只从 `https://privacyguard.snorlaxden.fun/` 获取。先读取 `latest.json`，确认目标平台状态为 `available`，下载后必须按同目录 `SHA256SUMS` 校验。状态为 `pending_validation` 时停止，不得改用旧版本冒充当前版本。
+
 Agent 安全入口优先使用 Python 3.11：
 
 ```bash

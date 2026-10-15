@@ -35,13 +35,13 @@ Windows 当前默认是规则模式，只识别格式稳定的敏感信息。跨
 
 重新运行 `python scripts/download_model.py` 会复用 Hugging Face 缓存。企业网络可设置 `HF_ENDPOINT` 使用可信镜像，但不要关闭 TLS 校验。
 
-## 模型为什么不直接放进 Git
+## 模型从哪里下载
 
-Git 不适合保存数 GB 权重。当前模型约 3.2GB；GitHub Release 单个资产也有大小限制，需要拆成约 1.9GB 的分片。推荐优先使用 Hugging Face，Release 仅作为版本化镜像。
+普通 macOS 用户不需要单独下载模型。国内下载站提供的完整 DMG 已包含约 3.2GB 的模型权重。开发环境需要单独管理模型时，`scripts/download_model.py` 会复用本机缓存。
 
-## 可以把 7GB 权重放到 GitHub Release 吗
+## 为什么不再使用 GitHub Release
 
-可以，但必须拆分。执行 `scripts/package_model_release.sh /模型目录` 生成分片和 `SHA256SUMS`，然后用 `gh release upload` 上传。下载端必须合并并校验 SHA-256。更推荐发布到专门的模型仓库。
+当前正式文件统一托管在 `https://privacyguard.snorlaxden.fun/`。国内服务器允许提供完整 DMG，并同时发布 SHA-256；这样避免 GitHub 单文件大小限制和部分网络环境下载失败。GitHub 源码仓库不作为正式安装包下载源。
 
 ## `pdftotext` 不存在
 

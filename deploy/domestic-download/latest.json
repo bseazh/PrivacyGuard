@@ -1,0 +1,17 @@
+{
+  "version": "v0.1.5",
+  "published_at": "2026-10-15",
+  "base_url": "https://privacyguard.snorlaxden.fun/v0.1.5/",
+  "platforms": {
+    "macos_arm64": {
+      "status": "available",
+      "file": "PrivacyGuard-v0.1.5-macos-arm64.dmg",
+      "sha256": "17f105d2c56ed6d43fb40403d921d1d76d8b952814bd6b6a28b8f67631174d94"
+    },
+    "windows_x64": {
+      "status": "pending_validation",
+      "file": null,
+      "sha256": null
+    }
+  }
+}

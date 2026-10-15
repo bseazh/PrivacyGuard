@@ -15,6 +15,7 @@ build/pyinstaller/
 build/*.spec
 model-release/
 reports/
+dist/domestic/
 tests/real_samples.json
 __pycache__/
 *.pyc
