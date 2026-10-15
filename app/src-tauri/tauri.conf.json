@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "PrivacyGuard",
-  "version": "0.1.0",
+  "version": "0.1.5",
   "identifier": "local.legalredaction.desktop",
   "build": {"beforeDevCommand": "npm run dev", "devUrl": "http://localhost:5173", "frontendDist": "../dist"},
   "app": {"windows": [{"title": "PrivacyGuard", "width": 1280, "height": 820}], "security": {"csp": null}},
