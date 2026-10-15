@@ -359,4 +359,8 @@ task 使用 risk_summary。任何环节 blocked 都立即停止。
 
 系统目前可以处理 TXT、MD、DOCX 和受限 PDF，并非只能处理 TXT。PDF 的正确入口仍是用户上传文件落盘后的绝对路径：只分析走 `privacy_scan_file -> privacy_secure_ask`；需要安全文件走 `privacy_redact_file -> privacy_get_safe_content`，并可继续把同一安全引用交给 `privacy_secure_ask`。
 
-运行中 MCP 路径和文本格式白名单已经统一。下一阶段应增加一个高层 MCP 编排工具，让 Agent 一次调用完成扫描、批准引用和受控模型分析；扫描 PDF 和含签章、图片、复杂对象的 PDF 仍应按 fail-closed 方式阻断，不能由 Agent 绕过 PrivacyGuard 自行提取。
+运行中 MCP 路径、文本格式白名单和高层 MCP 编排入口已经统一；扫描 PDF 和含签章、图片、复杂对象的 PDF 仍应按 fail-closed 方式阻断，不能由 Agent 绕过 PrivacyGuard 自行提取。
+
+## 12. 后续实现状态
+
+高层 MCP 工具 `privacy_process_and_ask` 已加入当前分支。它默认不返回安全正文或 `safe_reference`，在内部完成扫描、引用隔离、LiteLLM/Presidio 发送前检查和回答复检；只有用户明确要求安全副本时才返回已批准的文件路径。Codex/WorkBuddy Skill 应优先调用该工具，旧五工具保留用于测试和受控分步流程。

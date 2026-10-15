@@ -225,3 +225,57 @@ class PrivacyGuard:
             return await secure_ask(self, safe_reference, task)
         except Exception as exc:
             return self._blocked(f"受控调用初始化失败 ({type(exc).__name__})")
+
+    async def process_and_ask(
+        self,
+        raw_path: str,
+        task: str = "risk_summary",
+        create_safe_copy: bool = False,
+    ) -> dict:
+        """Run the protected file workflow without exposing content or bearer references."""
+        prepared = self.redact_file(raw_path) if create_safe_copy else self.scan_file(raw_path)
+        if prepared.get("status") != "approved":
+            return {
+                "status": "blocked",
+                "stage": "safe-copy" if create_safe_copy else "scan",
+                "reason": prepared.get("reason", "隐私处理失败，已阻断"),
+                "counts": {},
+                "safe_file": None,
+            }
+
+        reference = str(prepared["safe_reference"])
+        analysis = await self.secure_ask(reference, task)
+        if analysis.get("status") != "approved":
+            return {
+                "status": "blocked",
+                "stage": "secure-analysis",
+                "reason": analysis.get("reason", "受控分析失败，已阻断"),
+                "counts": prepared.get("counts", {}),
+                "safe_file": None,
+            }
+
+        safe_file = None
+        if create_safe_copy:
+            try:
+                approved = self.store.get(reference)
+                if approved.kind == "file":
+                    safe_file = {"kind": "file", "path": approved.output_path}
+                else:
+                    safe_file = {"kind": "sanitized-text", "path": None}
+            except Exception as exc:
+                return {
+                    "status": "blocked",
+                    "stage": "safe-copy-retrieval",
+                    "reason": f"安全副本读取失败，已阻断 ({type(exc).__name__})",
+                    "counts": prepared.get("counts", {}),
+                    "safe_file": None,
+                }
+        return {
+            "status": "approved",
+            "answer": analysis["answer"],
+            "task": analysis["task"],
+            "guardrail": analysis["guardrail"],
+            "counts": prepared.get("counts", {}),
+            "file_type": prepared.get("file_type"),
+            "safe_file": safe_file,
+        }

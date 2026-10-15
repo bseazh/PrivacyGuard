@@ -52,6 +52,23 @@ async def privacy_secure_ask(safe_reference: str, task: str = "risk_summary") ->
     return await PrivacyGuard().secure_ask(safe_reference, task)
 
 
+@mcp.tool(structured_output=True)
+async def privacy_process_and_ask(
+    file_path: str,
+    task: str = "risk_summary",
+    create_safe_copy: bool = False,
+) -> dict[str, object]:
+    """Privately process a local file and return only a controlled model answer.
+
+    This is the default Agent entry point for contracts, customer materials and
+    evidence. It performs scanning, redaction, reference isolation, LiteLLM
+    pre-send guardrails and answer rechecking internally. It never returns source
+    text or the bearer safe_reference. Set create_safe_copy only when the user
+    explicitly asks for a downloadable sanitized file.
+    """
+    return await PrivacyGuard().process_and_ask(file_path, task, create_safe_copy)
+
+
 def main() -> None:
     mcp.run(transport="stdio")
 

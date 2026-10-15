@@ -1,6 +1,6 @@
 ---
 name: privacyguard
-description: Protect privacy in local TXT, Markdown, DOCX, and PDF files before analysis. Use when a user asks to analyze a local contract or document containing personal, legal, customer, identity, phone, email, banking, address, signature, seal, or other sensitive information, or explicitly asks for privacy protection, redaction, anonymization, or pseudonymization.
+description: Protect privacy before analyzing local contracts, customer materials, evidence materials, legal documents, TXT, Markdown, EML, DOCX, or PDF files. Automatically use when the user mentions a contract, privacy, redaction, anonymization, pseudonymization, customer materials, evidence materials, personal information, identity, phone, email, banking, address, signature, seal, or other sensitive information.
 ---
 
 # PrivacyGuard
@@ -8,17 +8,16 @@ description: Protect privacy in local TXT, Markdown, DOCX, and PDF files before 
 ## Required workflow
 
 1. Identify the absolute source path without opening or reading the source file.
-2. For analysis, call MCP tool `privacy_scan_file` with that path. For a downloadable safe PDF/DOCX copy, call `privacy_redact_file` instead. If `privacy_redact_file` receives TXT/Markdown/EML, it returns an approved sanitized-text reference rather than a file path; continue through that reference.
-3. If the result is not `approved`, stop. Report the reason without reading the source.
-4. Call `privacy_get_safe_content` using only the returned `safe_reference`.
-5. Continue the user's original analysis using the approved safe content.
-6. Never substitute a raw path for a safe reference.
+2. By default, call only `privacy_process_and_ask` with that path and the fixed task `risk_summary` or `summary`. Do not call `privacy_get_safe_content` and do not bring sanitized document content into the host Agent context.
+3. Set `create_safe_copy=false` unless the user explicitly asks to download, export, save, or receive a sanitized copy. For an explicit safe-copy request, call `privacy_process_and_ask` with `create_safe_copy=true`.
+4. If the result is not `approved`, stop. Report the reason without reading the source or attempting another parser.
+5. Return the approved answer, aggregate entity counts and, only when requested, the approved safe-file path. Never request or expose the internal `safe_reference`.
 
-For text pasted directly by the user, call `privacy_scrub_text`, then retrieve the approved result with `privacy_get_safe_content` before continuing.
+For text pasted directly by the user, call `privacy_scrub_text`, then pass its approved reference directly to `privacy_secure_ask`. Do not call `privacy_get_safe_content` unless the user explicitly asks to inspect the sanitized text.
 
-File export returns a safe reference, not a source path. Retrieve the approved output path using `privacy_get_safe_content`. Explain that the copy is reconstructed text-only and does not preserve layout. Never substitute an upstream download or desktop export for a verified safe file reference.
+An explicitly requested file export is returned by `privacy_process_and_ask` as `safe_file`. Explain that PDF/DOCX copies are reconstructed text-only and do not preserve layout. Never substitute an upstream download or desktop export for a verified safe file.
 
-If the user explicitly asks PrivacyGuard to use its configured LLM, call `privacy_secure_ask` using only an approved `safe_reference` and a fixed task (`risk_summary` or `summary`). If blocked or not configured, stop. Do not pass raw text, source paths, or arbitrary prompts to an LLM. Otherwise, analyze only the retrieved safe content as usual.
+The default file workflow uses PrivacyGuard's configured LiteLLM path internally. Do not analyze file contents with the host Agent model. For pasted text, `privacy_secure_ask` accepts only an approved reference and a fixed task (`risk_summary` or `summary`). If blocked or not configured, stop. Do not pass raw text, source paths, arbitrary prompts, model names or URLs to an LLM.
 
 ## Fail-closed rules
 

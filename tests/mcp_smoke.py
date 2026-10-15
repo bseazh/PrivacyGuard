@@ -29,7 +29,7 @@ async def exercise(root: Path, test_root: Path) -> None:
             await session.initialize()
             tools = await session.list_tools()
             names = sorted(item.name for item in tools.tools)
-            expected = ["privacy_get_safe_content", "privacy_redact_file", "privacy_scan_file", "privacy_scrub_text", "privacy_secure_ask"]
+            expected = ["privacy_get_safe_content", "privacy_process_and_ask", "privacy_redact_file", "privacy_scan_file", "privacy_scrub_text", "privacy_secure_ask"]
             if names != expected:
                 raise RuntimeError(f"unexpected tools: {names}")
             result = await session.call_tool("privacy_scrub_text", {"text": "联系 alice@example.com 或 13800138000"})

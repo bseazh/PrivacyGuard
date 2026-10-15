@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+from unittest.mock import AsyncMock
 from pathlib import Path
 
 from service.redaction_core import detect_entities, is_valid_china_id
@@ -75,6 +76,28 @@ class PrivacyGuardCoreTests(unittest.TestCase):
         safe = self.core.get_safe_content(result["safe_reference"])
         self.assertEqual(safe["kind"], "text")
         self.assertNotIn("alice@example.com", safe["content"])
+
+    def test_process_and_ask_hides_content_and_reference(self):
+        source = self.root / "contract.txt"
+        source.write_text("联系人 唐三，邮箱 alice@example.com", encoding="utf-8")
+        self.core.secure_ask = AsyncMock(return_value={
+            "status": "approved",
+            "answer": "合同风险需要人工核查。",
+            "task": "risk_summary",
+            "guardrail": "privacyguard-presidio-pre-send",
+        })
+        result = __import__("asyncio").run(self.core.process_and_ask(str(source)))
+        self.assertEqual(result["status"], "approved")
+        self.assertNotIn("safe_reference", result)
+        self.assertNotIn("content", result)
+        self.assertIsNone(result["safe_file"])
+        self.core.secure_ask.assert_awaited_once()
+
+    def test_process_and_ask_blocks_without_model_fallback(self):
+        result = __import__("asyncio").run(self.core.process_and_ask(str(self.root / "missing.txt")))
+        self.assertEqual(result["status"], "blocked")
+        self.assertEqual(result["stage"], "scan")
+        self.assertNotIn("safe_reference", result)
 
     def test_txt_markdown_docx_and_text_pdf(self):
         sources = [

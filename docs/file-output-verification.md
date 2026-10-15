@@ -23,7 +23,7 @@
 
 ## 已执行测试
 
-- `./scripts/test_privacyguard.sh`：Core/文件输出 36 项、8 个格式子测试通过，LiteLLM 受控调用另有 6 项、3 个子测试通过；MCP stdio 发现五个工具，实际文本脱敏、扫描、PDF/DOCX 安全副本导出与引用读取通过。
+- `./scripts/test_privacyguard.sh`：Core、文件输出与 LiteLLM 受控调用通过；MCP stdio 发现六个工具，包含默认聊天入口 `privacy_process_and_ask`，实际文本脱敏、扫描、PDF/DOCX 安全副本导出、受控分析与引用读取通过。
 - `.venv/bin/python tests/file_output_live.py`：真实 Presidio + RedactionEverything NER/execute/download，PDF 和 DOCX 均通过。
 - `PRIVACYGUARD_MLX_PYTHON="$PWD/.venv-mlx/bin/python" .venv/bin/python tests/file_output_live.py`：加上真实 Qwen3 MLX，两种格式均通过。
 - 每份虚构样本计数：ORGANIZATION=1、PERSON=2、ADDRESS=1、PHONE=1、EMAIL=1。人名两处共用同一占位符。
@@ -34,7 +34,7 @@
 
 ## 使用与存储
 
-MCP：`privacy_redact_file(path)` -> approved reference -> `privacy_get_safe_content(reference)` -> 安全文本与输出路径。分析请求仍使用 `privacy_scan_file`。
+Agent 默认使用 `privacy_process_and_ask(path)`，不把安全正文或完整引用带入宿主上下文。只有调试或显式分步操作才使用 `privacy_redact_file(path)` -> approved reference -> `privacy_get_safe_content(reference)`。
 
 CLI（仓库根目录）：
 

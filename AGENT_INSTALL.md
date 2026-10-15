@@ -18,4 +18,4 @@ Agent 应向用户说明：默认安装到 `~/Documents/PrivacyGuard`；下载�
 请使用 $privacyguard 保护隐私后，分析这份虚构合同并总结风险：/绝对路径/合同.docx
 ```
 
-Agent 不得先读取原文件；必须先交给 `privacy_scan_file` 或 `privacy_redact_file`。LiteLLM 只用于 `privacy_secure_ask`，不能声称其自动保护 Codex 原生流量。
+Agent 不得先读取原文件；默认必须一次调用 `privacy_process_and_ask`，且不得把安全正文取回宿主上下文。只有用户明确要求下载安全副本时才设置 `create_safe_copy=true`。LiteLLM 只保护 PrivacyGuard 管理的受控调用，不能声称其自动保护 Codex 原生流量。

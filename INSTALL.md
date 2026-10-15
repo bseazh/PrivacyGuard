@@ -30,7 +30,7 @@ curl -fsSL https://privacyguard.snorlaxden.fun/install.sh | bash
 安装成功必须同时满足：
 
 1. Presidio、RedactionEverything、HaS、PaddleOCR 和 MLX 健康检查可用；
-2. MCP 可发现五个 PrivacyGuard 工具；
+2. MCP 可发现六个 PrivacyGuard 工具，包括默认聊天入口 `privacy_process_and_ask`；
 3. 虚构 DOCX 能生成安全副本；
 4. LiteLLM 只接收安全引用，拒绝原文件路径；
 5. 模型回答不残留测试中的姓名、邮箱和手机号。
