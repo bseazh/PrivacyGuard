@@ -6,6 +6,7 @@ import threading
 import unittest
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from unittest.mock import patch
 
 from privacyguard.adapters.litellm import LLMSettings, LiteLLMAdapter
 from privacyguard.adapters.presidio import PresidioAdapter
@@ -142,6 +143,66 @@ class SecureAskTests(unittest.TestCase):
         self.assertEqual(result["status"], "blocked")
         self.assertNotIn("alice@example.com", str(result))
         self.assertEqual(len(self.requests), 1)
+
+    def run_unified(self, source, **kwargs):
+        async def ask(reference, task):
+            return await secure_ask(self.core, reference, task, adapter=self.adapter,
+                                    audit=self.events.append)
+        with patch.object(self.core, "secure_ask", side_effect=ask):
+            return asyncio.run(self.core.process_and_ask(str(source), **kwargs))
+
+    def test_unified_entry_returns_answer_without_document_or_reference(self):
+        source = self.root / "contract.txt"
+        source.write_text("邮箱 alice@example.com，手机号13800138000；付款期限未约定。")
+        result = self.run_unified(source)
+        self.assertEqual(result["status"], "approved", result)
+        self.assertIsNone(result["safe_file"])
+        self.assertNotIn("content", result)
+        self.assertNotIn("safe_reference", result)
+        self.assertEqual(len(self.requests), 1)
+        for value in ("alice@example.com", "13800138000"):
+            self.assertNotIn(value, json.dumps(self.requests))
+            self.assertNotIn(value, str(result))
+
+    def test_unified_missing_source_and_detector_failure_never_send(self):
+        result = self.run_unified(self.root / "missing.txt")
+        self.assertEqual(result["status"], "blocked", result)
+        self.assertEqual(result["stage"], "scan")
+        source = self.root / "contract.txt"
+        source.write_text("付款期限未约定。")
+        self.guardrail_mode = "offline"
+        result = self.run_unified(source)
+        self.assertEqual(result["status"], "blocked", result)
+        self.assertEqual(self.requests, [])
+
+    def test_unified_explicit_docx_export_returns_verified_file(self):
+        source = self.root / "contract.docx"
+        source.write_bytes(rebuild_safe_file("邮箱 alice@example.com；付款期限未约定。", ".docx"))
+        # Isolate only the external export backend; rebuild, verification,
+        # reference storage, Presidio and the LiteLLM HTTP path remain real.
+        with patch.object(self.core.redaction, "upload_and_parse", return_value={
+            "file_id": "fixture", "content": inspect_source(source), "entities": [],
+        }), patch.object(self.core.redaction, "execute_and_download", return_value=source.read_bytes()):
+            result = self.run_unified(source, create_safe_copy=True)
+        self.assertEqual(result["status"], "approved", result)
+        output = Path(result["safe_file"]["path"])
+        self.assertNotEqual(output, source)
+        text = inspect_source(output)
+        self.assertNotIn("alice@example.com", text)
+        self.assertIn("付款期限未约定", text)
+        self.assertNotIn("safe_reference", result)
+
+    def test_unified_model_failure_returns_no_answer_or_safe_file(self):
+        source = self.root / "contract.txt"
+        source.write_text("付款期限未约定。")
+        async def unavailable(messages):
+            raise ConnectionError("test upstream unavailable")
+        with patch.object(self.adapter, "complete", side_effect=unavailable):
+            result = self.run_unified(source)
+        self.assertEqual(result["status"], "blocked", result)
+        self.assertEqual(result["stage"], "secure-analysis")
+        self.assertIsNone(result["safe_file"])
+        self.assertNotIn("answer", result)
 
 
 if __name__ == "__main__":
