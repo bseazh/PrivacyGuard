@@ -14,6 +14,54 @@ PrivacyGuard 是面向中文法律材料的本地敏感信息识别、人工复�
 - 有文本层 PDF 的安全删除和原位假名写入；
 - AES-256-GCM 加密映射导出。
 
+## 总体架构与执行边界
+
+下面是当前实现的主流程。后续功能必须接入这张图规定的边界：RedactionEverything 负责文件解析和 HaS 识别，PrivacyGuard 负责统一假名化、验证和调度，Presidio 负责补充检测及发送前复检，LiteLLM 只接收已经批准的安全内容。
+
+```mermaid
+flowchart TB
+    U[用户 / Codex / WorkBuddy] -->|本地绝对路径或粘贴文本| S[PrivacyGuard Skill]
+    S --> M[PrivacyGuard MCP]
+    M --> P[PrivacyGuard Core<br/>路径白名单 · SHA-256 · 状态机]
+    P --> R[RedactionEverything<br/>解析 · OCR/文本层 · HaS NER]
+    R -->|内容、实体、偏移、失败状态| V[源内容验证]
+    V -->|空正文、无效偏移、识别失败| X[BLOCKED<br/>停止，不回退原文]
+    V --> N[识别合并<br/>规则 · 分块 · 重叠/重复 · 可选 MLX]
+    N --> A[统一假名化<br/>&lt;PERSON_001&gt; · &lt;EMAIL_001&gt;]
+    A --> Q[安全文本复检<br/>Presidio + PrivacyGuard 重扫]
+    Q -->|残留或服务失败| X
+    Q --> D{用户要求下载副本?}
+    D -->|否：仅分析| T[内部安全文本<br/>短期引用，不生成文件]
+    D -->|是| E[重建安全文件<br/>TXT / PDF / DOCX]
+    E --> F[文件验证<br/>原值 · 隐藏内容 · 元数据 · 批注/附件]
+    F -->|无法验证| X
+    F --> T
+    T --> G[引用复验<br/>有效期 · 文件哈希 · 内容一致性]
+    G --> H[Presidio pre-send Guardrail]
+    H -->|不通过| X
+    H --> L[LiteLLM SDK / 本地或受控模型]
+    L --> O[回答复检<br/>敏感残留 · 长度 · 任务约束]
+    O -->|不通过| X
+    O --> Z[返回 Agent：答案 + 统计<br/>下载请求时附安全副本路径]
+    R -.-> W[(RedactionEverything<br/>127.0.0.1:8000)]
+    H -.-> C[(Presidio<br/>127.0.0.1:5002)]
+    L -.-> Y[(MLX/Qwen3 或受控服务)]
+```
+
+流程规则：普通聊天只走“内部安全文本”分支，不生成 PDF/DOCX；只有明确要求下载时才进入文件重建和结构验证。任何 `BLOCKED` 都是终点，Agent 不得读取原文件、改用通用 OCR 或把原文直接交给模型。MCP/Skill 是协作式边界，不能拦截宿主 Agent 在调用工具前自行读取文件，也不能接管 Codex/WorkBuddy 的内置模型流量。
+
+详细接口、格式限制和验收结果见 [统一处理流程与验收](docs/unified-pipeline-verification.md)。
+
+## 下一阶段工作顺序
+
+按这张架构图，下一阶段先做输入完整性，再做识别质量，最后做用户体验：
+
+1. **OCR 完整闭环（P0）**：让 RedactionEverything 对扫描 PDF 返回完整逐页 OCR 文本、页码覆盖、失败状态和可验证偏移；PrivacyGuard 验证覆盖完整后才允许分析或导出。当前短页/扫描页必须阻断。
+2. **真实材料标注验收（P0）**：使用脱离仓库的本地样本建立至少 100 个实体的标注集，比较规则、HaS、规则+HaS 的召回率、误报率、人工修正次数、延迟和内存；不上传原文。
+3. **人工 REVIEW 状态（P1）**：对低置信度姓名、机构、地址、法院、律所和项目提供确认/忽略界面，记录类别和统计，不记录原始值；确认后重新生成安全文本和副本。
+4. **分析答案质量（P1）**：用人工标注的合同风险基准约束 LiteLLM 输出，单独验收事实依据、缺失不推定、引用逐字一致；隐私链路通过不等于法律分析正确。
+5. **格式扩展（P2）**：OCR 验收后再评估图片、XLSX、VCF、ICS、音频和 ZIP，所有新格式复用同一验证、假名化和 `BLOCKED` 边界。
+
 ## 一句话安装
 
 不提供 DMG 或捆绑应用。macOS Apple Silicon 用户在终端粘贴一条命令：
