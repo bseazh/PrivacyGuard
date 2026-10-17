@@ -46,7 +46,7 @@ def inspect_docx(raw: bytes) -> str:
         return "\n".join(texts)
 
 
-def inspect_pdf(raw: bytes) -> str:
+def inspect_pdf(raw: bytes, *, allow_scanned: bool = False) -> str:
     with fitz.open(stream=raw, filetype="pdf") as document:
         if document.is_encrypted:
             raise ValueError("加密 PDF 未验证，已阻断")
@@ -54,24 +54,27 @@ def inspect_pdf(raw: bytes) -> str:
             for annotation in list(page.annots() or []):
                 page.delete_annot(annotation)
         for page in document:
-            if page.get_images(full=True) or page.get_drawings():
+            if not allow_scanned and (page.get_images(full=True) or page.get_drawings()):
                 raise ValueError("PDF 含未验证图片或矢量内容，已阻断安全文件导出")
-            if not page.get_text().strip():
+            if not allow_scanned and not page.get_text().strip():
                 raise ValueError("PDF 存在无文本页面，已阻断")
         with fitz.open(stream=document.tobytes(garbage=4), filetype="pdf") as cleaned:
             for xref in range(1, cleaned.xref_length()):
                 obj = cleaned.xref_object(xref)
-                if any(marker in obj for marker in ("/JavaScript", "/OpenAction", "/AA", "/AcroForm", "/RichMedia", "/XFA", "/OCProperties", "/Type/XObject", "/Type /XObject")):
+                markers = ("/JavaScript", "/OpenAction", "/AA", "/AcroForm", "/RichMedia", "/XFA", "/OCProperties")
+                if not allow_scanned:
+                    markers += ("/Type/XObject", "/Type /XObject")
+                if any(marker in obj for marker in markers):
                     raise ValueError("PDF 含未验证动态或复杂对象，已阻断")
         # Attachments, metadata, links and annotations are deliberately not copied.
         return "\n".join(page.get_text() for page in document)
 
 
-def inspect_source(path: Path) -> str:
+def inspect_source(path: Path, *, allow_scanned: bool = False) -> str:
     raw = path.read_bytes()
     if path.suffix.lower() == ".txt":
         return raw.decode("utf-8")
-    return inspect_pdf(raw) if path.suffix.lower() == ".pdf" else inspect_docx(raw)
+    return inspect_pdf(raw, allow_scanned=allow_scanned) if path.suffix.lower() == ".pdf" else inspect_docx(raw)
 
 
 def rebuild_safe_file(text: str, suffix: str) -> bytes:

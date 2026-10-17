@@ -28,7 +28,11 @@ class PrivacyGuard:
     def __init__(self, settings: Settings | None = None, presidio: PresidioAdapter | None = None):
         self.settings = settings or Settings.from_env()
         self.presidio = presidio or PresidioAdapter(self.settings.presidio_url)
-        self.redaction = RedactionEverythingAdapter(self.settings.redaction_url, self.settings.redaction_token)
+        self.redaction = RedactionEverythingAdapter(
+            self.settings.redaction_url,
+            self.settings.redaction_token,
+            ocr_url=self.settings.redaction_ocr_url,
+        )
         self.store = SafeReferenceStore(self.settings.data_dir, self.settings.reference_ttl_seconds)
         self.semantic = SemanticEnsemble(self.redaction)
 
@@ -120,10 +124,21 @@ class PrivacyGuard:
         text = parsed.get("content")
         if not isinstance(text, str) or not text.strip():
             raise ValueError("上游解析或 OCR 未产生可验证文本")
+        if path.suffix.lower() == ".pdf":
+            # A scanned PDF is only accepted when the upstream adapter returned
+            # every page as non-empty OCR text and verified global offsets.
+            if parsed.get("ocr_complete"):
+                pages = parsed.get("pages")
+                page_count = parsed.get("page_count")
+                if (not isinstance(page_count, int) or page_count < 1
+                        or not isinstance(pages, list) or len(pages) != page_count
+                        or any(not isinstance(page, str) or not page.strip() for page in pages)
+                        or "\n\n".join(pages) != text):
+                    raise ValueError("OCR 页码覆盖不完整")
         extra = verified_findings(text, parsed.get("entities", []), "redaction-everything-file")
         suffix = path.suffix.lower()
         if suffix in {".docx", ".pdf"}:
-            inspected = inspect_source(path)
+            inspected = inspect_source(path, allow_scanned=bool(parsed.get("ocr_complete")))
             missing = [line for line in inspected.splitlines() if line.strip() and line not in text]
             if missing:
                 text += "\n" + "\n".join(missing)

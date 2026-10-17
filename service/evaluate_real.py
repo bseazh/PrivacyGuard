@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import json
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -41,17 +42,22 @@ def validate_gold(record: dict) -> list[str]:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description="Evaluate a human-confirmed local annotation set")
+    parser.add_argument("--input", type=Path, help="Human-reviewed JSONL input")
+    parser.add_argument("--output", type=Path, help="Evaluation report output")
+    args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     # The annotation UI writes the reviewed copy; never score the untouched
     # candidate file, otherwise confirmed labels appear as zero gold entities.
-    path = root / "test-results/real-annotation-assisted.jsonl"
+    path = (args.input or root / "test-results/real-annotation-assisted.jsonl").expanduser().resolve()
+    out = (args.output or root / "test-results/real-evaluation.json").expanduser().resolve()
     records = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
     validation = [error for record in records for error in validate_gold(record)]
     gold_count = sum(len(record.get("gold_entities", [])) for record in records)
     pending_records = [record["id"] for record in records if record.get("review_status") != "confirmed"]
     if validation or pending_records or gold_count == 0:
         report = {"status": "awaiting_human_annotation", "files": len(records), "gold_entities": gold_count, "validation_errors": validation, "pending_records": pending_records, "message": "Confirm every record and ensure every gold span matches the source text before scoring."}
-        out = root / "test-results/real-evaluation.json"
+        out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print(json.dumps(report, ensure_ascii=False, indent=2))
         return 2
@@ -63,7 +69,7 @@ def main() -> int:
         text = record["text"]
         gold = record["gold_entities"]
         requested = list(TYPE_NAMES)
-        ner = recognize_chunked(backend, text, requested)
+        ner = recognize_chunked(backend, text, requested, prompt_variant="B")
         variants = {"rules": detect_entities(text), "fp16_ner": ner, "hybrid": merge_entities(detect_entities(text), ner)}
         for variant, pred in variants.items():
             result = score(gold, pred)
@@ -77,7 +83,7 @@ def main() -> int:
         result["recall"] = tp / (tp + fn) if tp + fn else 1.0
         result["f1"] = 2 * result["precision"] * result["recall"] / (result["precision"] + result["recall"]) if result["precision"] + result["recall"] else 0.0
     report = {"status": "complete", "files": len(records), "gold_entities": gold_count, "sample_size_note": "Small sample; use as an internal directional result, not a production accuracy guarantee.", "variants": variants, "by_type": {name: {type_id: dict(values) for type_id, values in types.items()} for name, types in by_type.items()}}
-    out = root / "test-results/real-evaluation.json"
+    out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(report, ensure_ascii=False, indent=2))
     return 0

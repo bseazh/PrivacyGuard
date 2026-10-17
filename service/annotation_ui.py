@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import json
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -91,7 +92,15 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
-    print(f"Local annotation UI: http://{HOST}:{PORT}")
+    global DATA, PORT
+    parser = argparse.ArgumentParser(description="Local-only PrivacyGuard annotation UI")
+    parser.add_argument("--data", type=Path, help="Assisted JSONL file to review")
+    parser.add_argument("--port", type=int, default=PORT)
+    args = parser.parse_args()
+    if args.data:
+        DATA = args.data.expanduser().resolve()
+    PORT = args.port
+    print(f"Local annotation UI: http://{HOST}:{PORT} ({DATA})")
     ThreadingHTTPServer((HOST, PORT), Handler).serve_forever()
 
 

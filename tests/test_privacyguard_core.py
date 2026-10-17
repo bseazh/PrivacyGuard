@@ -225,6 +225,21 @@ class PrivacyGuardCoreTests(unittest.TestCase):
         self.assertEqual(self.core.get_safe_content(result["safe_reference"])["kind"], "text")
         self.assertFalse(list(self.core.store.root.glob("*.txt")))
 
+    def test_ocr_page_coverage_must_match_complete_body(self):
+        source = self.root / "scan.pdf"
+        pdf = canvas.Canvas(str(source))
+        pdf.drawString(72, 760, "Page one")
+        pdf.save()
+        for pages, page_count in ((["Page one", "Page two"], 1), (["Page one", ""], 2),
+                                  (["Page one", "Page two"], 2)):
+            with self.subTest(pages=pages), patch.object(self.core.redaction, "upload_and_parse", return_value={
+                "content": "Page one", "entities": [], "ocr_complete": True,
+                "page_count": page_count, "pages": pages,
+            }):
+                result = self.core.scan_file(str(source))
+                self.assertEqual(result["status"], "blocked")
+                self.assertIsNone(result["safe_reference"])
+
     def test_docx_headers_omitted_by_upstream_are_still_protected(self):
         document = Document()
         document.add_paragraph("合同正文")

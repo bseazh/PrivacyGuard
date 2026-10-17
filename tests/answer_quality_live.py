@@ -25,7 +25,9 @@ async def main():
             })
             payload = result.structured_content
             if result.is_error or not payload or payload.get("status") != "approved":
-                raise AssertionError("Unified analysis did not approve")
+                raise AssertionError("Unified analysis did not approve: " + str({
+                    key: (payload or {}).get(key) for key in ("status", "stage", "reason")
+                }))
             assert "content" not in payload and "safe_reference" not in payload
             assert payload.get("safe_file") is None
             answer = payload["answer"]

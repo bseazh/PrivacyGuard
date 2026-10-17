@@ -4,28 +4,27 @@ import argparse
 import json
 from pathlib import Path
 
-from .mlx_ner import Qwen3NerBackend, TYPE_NAMES
+from .mlx_ner import Qwen3NerBackend, TYPE_NAMES, recognize_chunked
 from .redaction_core import detect_entities, extract_text
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Prepare local annotation candidates without committing source paths or documents")
     parser.add_argument("sources", nargs="+", type=Path, help="Local documents to process; never written into repository configuration")
+    parser.add_argument("--output", type=Path, help="Local JSONL output (defaults to test-results/real-annotation-candidates.jsonl)")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     backend = Qwen3NerBackend(root / "models/qwen3/Qwen3-1.7B-bf16")
     requested = list(TYPE_NAMES)
-    output = root / "test-results/real-annotation-candidates.jsonl"
+    output = (args.output or root / "test-results/real-annotation-candidates.jsonl").expanduser().resolve()
     output.parent.mkdir(parents=True, exist_ok=True)
     with output.open("w", encoding="utf-8") as handle:
         for index, source in enumerate(args.sources, 1):
             text = extract_text(source)
             # Keep model context bounded and preserve global offsets.
             candidates = []
-            for offset in range(0, len(text), 1200):
-                chunk = text[offset : offset + 1200]
-                for entity in backend.recognize(chunk, requested):
-                    candidates.append({"type": entity.type, "value": entity.value, "start": offset + entity.start, "end": offset + entity.end, "source": "fp16_ner", "review": "pending"})
+            for entity in recognize_chunked(backend, text, requested, chunk_chars=2400, overlap=300, prompt_variant="B"):
+                candidates.append({"type": entity.type, "value": entity.value, "start": entity.start, "end": entity.end, "source": "fp16_ner", "review": "pending"})
             rules = [item.__dict__ | {"review": "pending"} for item in detect_entities(text)]
             record = {
                 "id": f"real-{index:02d}",

@@ -143,7 +143,7 @@ class Qwen3NerBackend:
             return []
 
 
-def recognize_chunked(backend: Qwen3NerBackend, text: str, entity_types: list[str], chunk_chars: int = 2400, overlap: int = 200) -> list[Entity]:
+def recognize_chunked(backend: Qwen3NerBackend, text: str, entity_types: list[str], chunk_chars: int = 2400, overlap: int = 300, prompt_variant: str = "B") -> list[Entity]:
     """Run NER over bounded windows and restore document-global offsets."""
     step = max(1, chunk_chars - overlap)
     result: list[Entity] = []
@@ -151,7 +151,7 @@ def recognize_chunked(backend: Qwen3NerBackend, text: str, entity_types: list[st
     for offset in range(0, len(text), step):
         chunk = text[offset:offset + chunk_chars]
         if chunk.strip():
-            for entity in backend.recognize(chunk, entity_types):
+            for entity in backend.recognize(chunk, entity_types, prompt_variant=prompt_variant):
                 item = Entity(entity.type, entity.value, offset + entity.start, offset + entity.end, entity.confidence, entity.source)
                 key = (item.type, item.value, item.start, item.end)
                 if key not in seen:

@@ -70,7 +70,7 @@ macOS 执行 `brew install poppler`；Windows 执行 `winget install oschwartz10
 
 ## 为什么有文本的 PDF 被认为是扫描件？
 
-部分字体编码会导致 RedactionEverything 判为 `pdf_scanned`。PrivacyGuard 会再用 `pdftotext` 验证文本层；能提取时走文本层，仍为空时阻断并要求 OCR。
+部分字体编码会导致 RedactionEverything 判为 `pdf_scanned`。PrivacyGuard 会将每页渲染后调用本地 `/structure`，按页重建全文，再把完全相同的文本交回 HaS。页数不一致、任一页无文本、OCR 服务失败或重解析文本变化都会阻断。覆盖通过不代表字符级识别绝对准确，重要材料仍需人工抽查。
 
 ## 为什么不能直接把文件路径传给 get_safe_content？
 
@@ -102,7 +102,11 @@ Docker CLI 存在不等于 Docker Desktop daemon 正在运行。本机已验证�
 
 ## 为什么很短的 PDF 也会阻断？
 
-现有 RedactionEverything 每页平均少于 100 字时判为扫描件，并在 parse API 返回空正文；其 vision API 返回识别框而非完整逐页 OCR 正文。PrivacyGuard 不会把空正文当作识别成功，也不会自行回退绕过上游。扫描件和被误分类的短 PDF 目前需等待完整 OCR 文本接口接通，不能承诺可分析。含图片或无文本页的混合 PDF 也会阻断，避免只分析可提取的部分。
+RedactionEverything 可能把每页平均少于 100 字的文件判为扫描件。PrivacyGuard 现在会调用 CPU 兼容的 `/structure` 逐页 OCR，并校验每页非空、页码连续和总页数一致；两页扫描样本已完成真实链路验收。真正的空白页仍会阻断，混合 PDF 若不能证明全部页面都已覆盖也会阻断。`/ocr` 对应 PaddleOCR-VL，在 Mac CPU 模式下禁用不是故障。
+
+## LiteLLM 为什么在模型已经回答后仍显示 blocked？
+
+`risk_summary` 的回答还要通过输出质量检查：必须有三个固定分段、风险项必须附可在安全正文中逐字核对的引文，且只能使用批准的中性风险表述。付款条件与付款期限混淆、默认/隐含条款、合同效力或其他无依据后果都会在 `response-check` 阶段阻断。该检查降低已知小模型误推断，但不等于法律意见或全面正确性证明。
 
 ## 只分析会生成文件吗？TXT 能下载吗？
 

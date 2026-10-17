@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import json
 from pathlib import Path
 
@@ -9,9 +10,13 @@ def key(item: dict) -> tuple[str, str, int, int]:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description="Merge local rule and MLX candidates for human review")
+    parser.add_argument("--input", type=Path, help="Candidate JSONL input")
+    parser.add_argument("--output", type=Path, help="Assisted JSONL output")
+    args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
-    source = root / "test-results/real-annotation-candidates.jsonl"
-    target = root / "test-results/real-annotation-assisted.jsonl"
+    source = (args.input or root / "test-results/real-annotation-candidates.jsonl").expanduser().resolve()
+    target = (args.output or root / "test-results/real-annotation-assisted.jsonl").expanduser().resolve()
     records = [json.loads(line) for line in source.read_text(encoding="utf-8").splitlines() if line.strip()]
     for record in records:
         rules = {key(item): item for item in record.get("rule_candidates", [])}
@@ -40,4 +45,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

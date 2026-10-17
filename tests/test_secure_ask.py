@@ -26,7 +26,11 @@ class SecureAskTests(unittest.TestCase):
         self.requests = []
         self.analyzer = create_analyzer()
         self.guardrail_mode = "ok"
-        self.answer = "合同约定的付款期限尚需人工核查。"
+        self.answer = (
+            "【材料事实】材料写明付款期限未约定。\n"
+            "【条款风险】依据：“付款期限未约定。”；风险：约定缺失或不清可能导致双方理解分歧、履行争议或举证困难。\n"
+            "【待核查事项】核实是否存在补充约定。"
+        )
         owner = self
 
         class Handler(BaseHTTPRequestHandler):
@@ -149,6 +153,31 @@ class SecureAskTests(unittest.TestCase):
         self.assertEqual(result["status"], "blocked")
         self.assertNotIn("alice@example.com", str(result))
         self.assertEqual(len(self.requests), 1)
+
+    def test_unsupported_contract_inference_is_blocked_after_model_response(self):
+        self.answer = "【材料事实】材料未说明付款期限。\n【条款风险】付款条件未明确。\n【待核查事项】无。"
+        result = self.ask()
+        self.assertEqual(result["status"], "blocked")
+        self.assertIn("response-check", result["reason"])
+        self.assertEqual(len(self.requests), 1)
+
+    def test_unverifiable_quote_is_blocked_after_model_response(self):
+        self.answer = "【材料事实】材料未说明。\n【条款风险】存在风险。依据：“材料中不存在的句子。”\n【待核查事项】无。"
+        result = self.ask()
+        self.assertEqual(result["status"], "blocked")
+        self.assertIn("response-check", result["reason"])
+
+    def test_risk_without_verbatim_evidence_is_blocked(self):
+        self.answer = "【材料事实】材料未说明。\n【条款风险】约定不清可能产生争议。\n【待核查事项】核实补充协议。"
+        result = self.ask()
+        self.assertEqual(result["status"], "blocked")
+        self.assertIn("response-check", result["reason"])
+
+    def test_free_form_legal_consequence_is_blocked(self):
+        self.answer = "【材料事实】付款期限未约定。\n【条款风险】依据：“付款期限未约定。”；风险：争议无法处理。\n【待核查事项】核实补充约定。"
+        result = self.ask()
+        self.assertEqual(result["status"], "blocked")
+        self.assertIn("response-check", result["reason"])
 
     def run_unified(self, source, **kwargs):
         async def ask(reference, task):

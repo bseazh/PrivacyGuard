@@ -23,7 +23,7 @@ flowchart TB
     U[用户 / Codex / WorkBuddy] -->|本地绝对路径或粘贴文本| S[PrivacyGuard Skill]
     S --> M[PrivacyGuard MCP]
     M --> P[PrivacyGuard Core<br/>路径白名单 · SHA-256 · 状态机]
-    P --> R[RedactionEverything<br/>解析 · OCR/文本层 · HaS NER]
+    P --> R[RedactionEverything<br/>解析 · /structure 逐页 OCR · HaS NER]
     R -->|内容、实体、偏移、失败状态| V[源内容验证]
     V -->|空正文、无效偏移、识别失败| X[BLOCKED<br/>停止，不回退原文]
     V --> N[识别合并<br/>规则 · 分块 · 重叠/重复 · 可选 MLX]
@@ -52,12 +52,14 @@ flowchart TB
 
 详细接口、格式限制和验收结果见 [统一处理流程与验收](docs/unified-pipeline-verification.md)。
 
+最新实测见 [OCR、真实材料标注与回答质量验收](docs/ocr-and-quality-acceptance.md)：两页扫描 PDF 与本地模型受控回答已跑通；5 份真实材料、60 个候选仍需人工确认，真实召回率尚未产生。
+
 ## 下一阶段工作顺序
 
 按这张架构图，下一阶段先做输入完整性，再做识别质量，最后做用户体验：
 
-1. **OCR 完整闭环（P0）**：让 RedactionEverything 对扫描 PDF 返回完整逐页 OCR 文本、页码覆盖、失败状态和可验证偏移；PrivacyGuard 验证覆盖完整后才允许分析或导出。当前短页/扫描页必须阻断。
-2. **真实材料标注验收（P0）**：使用脱离仓库的本地样本建立至少 100 个实体的标注集，比较规则、HaS、规则+HaS 的召回率、误报率、人工修正次数、延迟和内存；不上传原文。
+1. **真实材料标注验收（P0）**：当前已在仓库外的 5 份材料上生成 60 个本地候选，待人工逐项确认后计算 precision、recall、误报率和人工修正次数；原文及 gold 不上传。
+2. **OCR 坐标与版式（P1）**：扫描 PDF 的逐页全文 OCR、页码覆盖和 HaS 识别已接通；下一步是坐标级原版式回写。当前下载副本仍是纯文本重建，不保留扫描图片或原排版。
 3. **人工 REVIEW 状态（P1）**：对低置信度姓名、机构、地址、法院、律所和项目提供确认/忽略界面，记录类别和统计，不记录原始值；确认后重新生成安全文本和副本。
 4. **分析答案质量（P1）**：用人工标注的合同风险基准约束 LiteLLM 输出，单独验收事实依据、缺失不推定、引用逐字一致；隐私链路通过不等于法律分析正确。
 5. **格式扩展（P2）**：OCR 验收后再评估图片、XLSX、VCF、ICS、音频和 ZIP，所有新格式复用同一验证、假名化和 `BLOCKED` 边界。
@@ -98,7 +100,7 @@ export PRIVACYGUARD_ENABLE_MLX_ENSEMBLE=1
 
 这两个变量必须传给实际启动 MCP 的进程；只在另一个终端设置不会改变已运行的 Codex。单独设置 Python 路径不会启用 MLX 实体识别；显式启用后 MLX 失败会阻断，不会静默降级。MLX/Qwen3 作为 LiteLLM 的分析模型与此开关相互独立。
 
-`privacy_redact_file` 为 PDF/DOCX 生成经过复检的独立安全副本，TXT/Markdown/纯文本 EML 导出为独立 UTF-8 `.txt` 文件，再通过安全引用读取路径。PDF/DOCX 当前采用纯文本重建，不保留原排版；原附件、属性、批注等不会复制。源文件含未验证图片、扫描页、矢量绘图、修订或复杂对象时阻断；分析入口也不放行不完整 PDF/DOCX。MIME 多部件、附件、编码邮件暂不支持。此入口不同于下文的桌面端原位 PDF 导出。历史验证范围见 [文件级安全输出说明](docs/file-output-verification.md)。
+`privacy_redact_file` 为 PDF/DOCX 生成经过复检的独立安全副本，TXT/Markdown/纯文本 EML 导出为独立 UTF-8 `.txt` 文件，再通过安全引用读取路径。PDF/DOCX 当前采用纯文本重建，不保留原排版；原附件、属性、批注等不会复制。扫描 PDF 必须完成逐页 OCR 校验；未验证图片、修订或动态复杂对象仍阻断，分析入口也不放行不完整 PDF/DOCX。MIME 多部件、附件、编码邮件暂不支持。此入口不同于下文的桌面端原位 PDF 导出。历史验证范围见 [文件级安全输出说明](docs/file-output-verification.md)。
 
 ### 受控 LiteLLM 调用
 
@@ -124,7 +126,7 @@ Codex 配置模板在 [config/codex-mcp.toml](config/codex-mcp.toml)，Skill 源
 4. 重新打开输出文件，检查原敏感文字是否仍可搜索；
 5. 任一实体无法定位或安全检查失败时拒绝导出。
 
-扫描 PDF 当前尚未接入 OCR 坐标回写。系统会拒绝将无法定位的扫描件报告为安全脱敏成功。
+扫描 PDF 已通过 `/structure` 逐页 OCR；每页必须返回非空文本，页数和逐页结果必须一致，OCR 文本还会重新经过 HaS 与完整复检。该覆盖检查只能证明每页参与了 OCR，不能证明字符级零漏识别。扫描件可用于受控分析及纯文本重建副本，但尚未接入原版式坐标回写。
 
 ## 本地开发和测试
 

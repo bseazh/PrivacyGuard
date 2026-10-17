@@ -4,7 +4,7 @@ import json
 from collections import defaultdict
 from pathlib import Path
 
-from .mlx_ner import Qwen3NerBackend
+from .mlx_ner import Qwen3NerBackend, recognize_chunked
 from .ner import merge_entities
 from .redaction_core import Entity, detect_entities
 
@@ -35,7 +35,7 @@ def main() -> int:
         text = sample["text"]
         types = sorted({item["type"] for item in sample["entities"]})
         rules = detect_entities(text)
-        ner = backend.recognize(text, types)
+        ner = recognize_chunked(backend, text, types, prompt_variant="B")
         variants = {"rules": rules, "fp16_ner": ner, "hybrid": merge_entities(rules, ner)}
         row = {"id": sample["id"], "counts": {}}
         for name, entities in variants.items():

@@ -2,6 +2,17 @@
 
 候选文件位于 `test-results/real-annotation-candidates.jsonl`，仅限本机使用，已被 `.gitignore` 排除。它包含原文，因此不能提交、上传或复制到外部服务。
 
+不同批次应使用独立路径，避免覆盖已经人工确认的数据：
+
+```bash
+.venv-mlx/bin/python -m service.prepare_real_annotation --output test-results/batch-candidates.jsonl /绝对路径/材料1.pdf /绝对路径/材料2.docx
+.venv/bin/python -m service.assist_annotation --input test-results/batch-candidates.jsonl --output test-results/batch-assisted.jsonl
+.venv/bin/python -m service.annotation_ui --data test-results/batch-assisted.jsonl --port 8765
+.venv-mlx/bin/python -m service.evaluate_real --input test-results/batch-assisted.jsonl --output test-results/batch-evaluation.json
+```
+
+最后一个命令在任一文件未确认或 gold 为空时必须返回 `awaiting_human_annotation`，不能用 AI 候选直接计算模型指标。
+
 ## 每条样本需要确认
 
 将人工确认后的实体写入 `gold_entities`：
@@ -35,7 +46,7 @@
 
 ## 完成条件
 
-- 10 份文件全部完成 `review_status=confirmed`；
+- 当前批次的全部文件完成 `review_status=confirmed`；
 - gold 实体数量以实际材料为准；100 个只是建议目标，不是硬性门槛；
 - 每个 span 通过原文切片校验；
 - 记录人工确认、修改、忽略数量；

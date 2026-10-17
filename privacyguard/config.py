@@ -21,6 +21,7 @@ class Settings:
     presidio_url: str
     redaction_url: str
     redaction_token: str | None
+    redaction_ocr_url: str = "http://127.0.0.1:8082"
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -32,4 +33,5 @@ class Settings:
             presidio_url=os.getenv("PRIVACYGUARD_PRESIDIO_URL", "http://127.0.0.1:5002").rstrip("/"),
             redaction_url=os.getenv("PRIVACYGUARD_REDACTION_BASE_URL", "http://127.0.0.1:8000").rstrip("/"),
             redaction_token=os.getenv("PRIVACYGUARD_REDACTION_TOKEN") or None,
+            redaction_ocr_url=os.getenv("PRIVACYGUARD_REDACTION_OCR_URL", "http://127.0.0.1:8082").rstrip("/"),
         )
