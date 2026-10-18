@@ -20,6 +20,6 @@ Agent 应向用户说明：默认安装到 `~/Documents/PrivacyGuard`；下载�
 
 Agent 不得先读取原文件；默认必须一次调用 `privacy_process_and_ask`，且不得把安全正文取回宿主上下文。只有用户明确要求下载安全副本时才设置 `create_safe_copy=true`。LiteLLM 只保护 PrivacyGuard 管理的受控调用，不能声称其自动保护 Codex 原生流量。
 
-询问用户使用 Codex 还是 WorkBuddy。WorkBuddy 的配置只自动生成到 `local-config/workbuddy-mcp.json`；用户授权修改其配置后，先关闭 WorkBuddy，再运行 `scripts/configure_workbuddy.py --apply`。必须保留其他 MCP、保留备份、冲突不覆盖。按 `docs/workbuddy.md` 验收六工具与虚构材料；返回的安全副本路径不是安全引用，禁止传给 `privacy_get_safe_content`。
+询问用户使用 Codex 还是 WorkBuddy。WorkBuddy 会生成完整示例和单条可粘贴配置；用户授权修改后，先关闭 WorkBuddy，再运行 `scripts/configure_workbuddy.py --apply`。不授权修改时运行 `--copy-entry`，告知用户粘贴到 `mcpServers` 内。必须保留其他 MCP、保留备份、冲突不覆盖。按 `docs/workbuddy.md` 验收六工具与虚构材料；返回的安全副本路径不是安全引用，禁止传给 `privacy_get_safe_content`。
 
 当前新版入口为国内 install.sh，GitHub main/install.sh 备用；固定源码镜像到国内，模型仍来自国内服务器 v0.1.5，不再依赖旧 PrivacyGuard 源码包。无网络或系统依赖时说明阻塞，不关闭 TLS、不跳过测试。完整安装器的本轮验证范围见发布记录，不得声称已在全新用户电脑验收。

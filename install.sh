@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="source-v0.1.6"
+VERSION="source-v0.1.7"
 COMPONENT_VERSION="v0.1.5"
 # The release manifest pins source independently of domestic model assets.
 BASE_URL="${PRIVACYGUARD_DOWNLOAD_BASE:-https://privacyguard.snorlaxden.fun}/$COMPONENT_VERSION"
@@ -48,7 +48,7 @@ if [[ "${PRIVACYGUARD_PREFLIGHT_ONLY:-0}" == 1 ]]; then
   exit 0
 fi
 
-SOURCE_BASE="${PRIVACYGUARD_DOWNLOAD_BASE:-https://privacyguard.snorlaxden.fun}/source-v0.1.6"
+SOURCE_BASE="${PRIVACYGUARD_DOWNLOAD_BASE:-https://privacyguard.snorlaxden.fun}/source-v0.1.7"
 step "读取固定源码发布清单（国内优先，GitHub 备用）"
 curl -fL --retry 2 --connect-timeout 15 --max-time 60 "$SOURCE_BASE/source-release.json" -o "$CACHE_DIR/source-release.json" || \
   curl -fL --retry 3 "https://raw.githubusercontent.com/bseazh/PrivacyGuard/main/config/source-release.json" -o "$CACHE_DIR/source-release.json"
@@ -146,7 +146,10 @@ cd "$TARGET_DIR"
 
 step "生成 WorkBuddy 配置（不覆盖现有 MCP）"
 "$TARGET_DIR/.venv/bin/python" scripts/configure_workbuddy.py
-echo "WorkBuddy 用户：先退出 WorkBuddy，再运行 $TARGET_DIR/.venv/bin/python $TARGET_DIR/scripts/configure_workbuddy.py --apply；然后重开应用。"
+echo "WorkBuddy 自动配置（推荐）：完全退出应用后运行："
+echo "$TARGET_DIR/.venv/bin/python $TARGET_DIR/scripts/configure_workbuddy.py --apply"
+echo "WorkBuddy 手动粘贴：运行以下命令复制含本机真实路径的条目，再粘贴到 mcpServers 内："
+echo "$TARGET_DIR/.venv/bin/python $TARGET_DIR/scripts/configure_workbuddy.py --copy-entry"
 
 if command -v codex >/dev/null 2>&1; then
   step "注册 Codex MCP 并安装 privacyguard Skill"

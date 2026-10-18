@@ -32,6 +32,19 @@ class WorkBuddyConfigTests(unittest.TestCase):
                 module.main()
             self.assertEqual(len(list(root.glob("mcp.json.privacyguard-backup-*"))), 1)
 
+    def test_generated_entry_is_path_expanded_and_ready_for_mcp_servers(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            wrapper, entry = root / "wrapper.json", root / "entry.json"
+            with patch.object(sys, "argv", [str(SCRIPT), "--output", str(wrapper), "--entry-output", str(entry)]):
+                module.main()
+            expected = json.loads(wrapper.read_text())["mcpServers"]["privacyguard"]
+            pasted = json.loads("{" + entry.read_text() + "}")
+            self.assertEqual(pasted["privacyguard"], expected)
+            self.assertNotIn("YOUR_NAME", entry.read_text())
+            self.assertTrue(expected["command"].startswith("/"))
+            self.assertEqual(entry.stat().st_mode & 0o777, 0o600)
+
     def test_conflict_is_not_overwritten(self):
         with tempfile.TemporaryDirectory() as directory:
             target = Path(directory) / "mcp.json"

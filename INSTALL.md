@@ -20,7 +20,9 @@ curl -fsSL https://privacyguard.snorlaxden.fun/install.sh | bash
 
 WorkBuddy：退出应用后执行 `~/Documents/PrivacyGuard/.venv/bin/python ~/Documents/PrivacyGuard/scripts/configure_workbuddy.py --apply`，再重开应用。[配置窗口图解及聊天验收](docs/workbuddy.md)。自定义安装路径时替换此命令中的两处路径。
 
-新版缓存为 `~/Library/Caches/PrivacyGuardInstaller/source-v0.1.6`，旧版安装目录不会自动升级覆盖；首次安装到已有非同版本非空目录会停止。GitHub 备用入口：`curl -fsSL https://raw.githubusercontent.com/bseazh/PrivacyGuard/main/install.sh | bash`。源码固定提交与哈希见 `config/source-release.json`。
+不允许脚本直接修改 WorkBuddy 时，运行 `~/Documents/PrivacyGuard/.venv/bin/python ~/Documents/PrivacyGuard/scripts/configure_workbuddy.py --copy-entry`。它会根据本机路径导出并复制单个 MCP 条目；将其粘贴到 WorkBuddy 配置的 `mcpServers` 内，而不是覆盖整个文件。
+
+新版缓存为 `~/Library/Caches/PrivacyGuardInstaller/source-v0.1.7`，旧版安装目录不会自动升级覆盖；首次安装到已有非同版本非空目录会停止。GitHub 备用入口：`curl -fsSL https://raw.githubusercontent.com/bseazh/PrivacyGuard/main/install.sh | bash`。源码固定提交与哈希见 `config/source-release.json`。
 
 ## 启停
 

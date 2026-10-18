@@ -14,7 +14,12 @@ curl -fsSL https://privacyguard.snorlaxden.fun/install.sh | bash
 
 ## 2. 生成并合并 MCP
 
-安装后会生成 `~/Documents/PrivacyGuard/local-config/workbuddy-mcp.json`，其中 command、模型路径、env 已替换为本机绝对路径。该文件不含其他 MCP 的密钥，不应提交 Git。
+安装后会生成两个权限为 0600 的本地文件，均已被 Git 忽略：
+
+- `local-config/workbuddy-privacyguard-entry.json`：可粘贴在现有 `mcpServers` 内的单个条目；
+- `local-config/workbuddy-mcp.json`：仅含 PrivacyGuard 的完整包装示例。
+
+其中用户名、command、模型路径、允许目录都根据本机自动展开，不需要手动替换 `/Users/你的用户名`。文件不含其他 MCP 的密钥，不应提交 Git。
 
 **先完全退出 WorkBuddy**，再在终端执行：
 
@@ -24,7 +29,13 @@ curl -fsSL https://privacyguard.snorlaxden.fun/install.sh | bash
 
 脚本备份 `~/.workbuddy/mcp.json`，保留已有 MCP，只新增 `privacyguard`；完全相同的条目直接复用，不同的同名条目拒绝覆盖。自定义安装目录时，替换两处 `~/Documents/PrivacyGuard`。不会自动改动 WorkBuddy 的全局 Skill 或规则。
 
-也可打开 WorkBuddy 的「MCP 服务管理」→ 配置编辑窗口，将生成文件里的 `mcpServers.privacyguard` 合并进现有 `mcpServers`，保留其他条目并注意逗号，点击保存。不要把一整个 JSON 对象嵌套进另一个 `mcpServers`。
+手动配置时先运行：
+
+```bash
+~/Documents/PrivacyGuard/.venv/bin/python ~/Documents/PrivacyGuard/scripts/configure_workbuddy.py --copy-entry
+```
+
+它会重新生成配置并将本机专用的 `"privacyguard": {...}` 条目复制到剪贴板。打开 WorkBuddy「MCP 服务管理」的配置编辑窗口，在现有 `"mcpServers": { ... }` 大括号**内部**粘贴；如果前面已有服务，在上一项结尾补一个逗号。保存后重开 WorkBuddy。不要粘贴到最外层，也不要用整份包装文件覆盖已有配置。
 
 ![WorkBuddy MCP 配置示意，无真实认证信息](images/workbuddy-mcp-setup.svg)
 
@@ -72,6 +83,14 @@ blocked 时停止，不回退原文或宿主模型。仅展示批准答案、统
 ```
 
 自然语言触发不是强制安全保证。先验收显式工具调用，再测自然语言；MCP 不会拦截宿主在调用工具前读取附件，也不接管 WorkBuddy 内置模型流量。
+
+## 5. 交给 Agent 的一句话
+
+用户可以把下面整段交给本地编码 Agent：
+
+```text
+请按 https://github.com/bseazh/PrivacyGuard/blob/main/AGENT_INSTALL.md 安装 PrivacyGuard。先报告系统、架构、内存、磁盘、预计下载量和时间；用国内入口下载并强制校验 SHA-256，运行 OCR、MCP、Presidio 和 LiteLLM 验收。然后询问我使用 Codex 还是 WorkBuddy；WorkBuddy 必须在我退出应用后备份并合并 ~/.workbuddy/mcp.json，保留其他 MCP，重开后确认六个工具并用虚构材料测试。失败就停止，不跳过校验，不读取真实材料绕过 PrivacyGuard。
+```
 
 不同 WorkBuddy 版本的 Skill/MCP 配置位置可能不同。接入时应确认该版本是否支持：stdio MCP、服务器环境变量、绝对命令路径和工具调用超时。未经对应版本实测，不宣称配置格式与 Codex 相同。
 

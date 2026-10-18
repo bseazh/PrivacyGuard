@@ -80,6 +80,20 @@ curl -fsSL https://privacyguard.snorlaxden.fun/install.sh | bash
 ~/Documents/PrivacyGuard/.venv/bin/python ~/Documents/PrivacyGuard/scripts/configure_workbuddy.py --apply
 ```
 
+想在截图所示的 MCP 编辑窗口手动粘贴，运行：
+
+```bash
+~/Documents/PrivacyGuard/.venv/bin/python ~/Documents/PrivacyGuard/scripts/configure_workbuddy.py --copy-entry
+```
+
+脚本会自动使用当前用户名、安装目录和模型路径，把完整的 `"privacyguard": {...}` 条目复制到剪贴板，同时保存到 `~/Documents/PrivacyGuard/local-config/workbuddy-privacyguard-entry.json`。在现有 `mcpServers` 的 `{}` 内粘贴，并与相邻服务用逗号隔开；不要照图片抄占位路径。完整包装配置另存为 `local-config/workbuddy-mcp.json`。
+
+给安装 Agent 的一句话任务：
+
+```text
+请按照 https://github.com/bseazh/PrivacyGuard/blob/main/AGENT_INSTALL.md 在这台 Mac 安装 PrivacyGuard；先预检系统、内存、磁盘和网络，使用国内入口下载并校验，完成 OCR、MCP 和 LiteLLM 验收。询问我使用 Codex 还是 WorkBuddy；如果是 WorkBuddy，先让我完全退出应用，再备份并合并 MCP，重开后用虚构材料验证六个工具。任何 blocked 或校验失败都停止，不读取真实文件绕过。
+```
+
 重开应用，按 [WorkBuddy 配置、配图与聊天验收](docs/workbuddy.md) 操作。Codex 已安装 CLI 时，安装器尝试注册 MCP/Skill；同名配置不会覆盖。WorkBuddy Skill 按版本手动导入 `skills/privacyguard/`，也可使用指南中的项目规则。
 
 ![WorkBuddy MCP 配置步骤](docs/images/workbuddy-mcp-setup.svg)

@@ -33,7 +33,11 @@ Windows 当前默认是规则模式，只识别格式稳定的敏感信息。跨
 
 ## 一句话安装下载很慢或中断
 
-直接重新执行同一条安装命令。新版缓存在 `~/Library/Caches/PrivacyGuardInstaller/source-v0.1.6`，`curl -C -` 会从已下载位置继续，不会从头开始。不要关闭 TLS 或跳过 SHA-256。完整缓存哈希错误时应隔离该组件后重下，不能认为续传必然修复已损坏内容。
+直接重新执行同一条安装命令。新版缓存在 `~/Library/Caches/PrivacyGuardInstaller/source-v0.1.7`，`curl -C -` 会从已下载位置继续，不会从头开始。不要关闭 TLS 或跳过 SHA-256。完整缓存哈希错误时应隔离该组件后重下，不能认为续传必然修复已损坏内容。
+
+## WorkBuddy 的用户名和 MCP 路径怎么填写？
+
+不用照文档手填。安装后运行 `scripts/configure_workbuddy.py --apply` 自动备份并合并；或运行 `--copy-entry`，它会将当前用户名、安装目录、模型和允许目录展开为完整条目并复制到剪贴板。粘贴位置是现有 `mcpServers` 对象内部，前后条目要用逗号分隔。
 
 ## 模型从哪里下载
 
