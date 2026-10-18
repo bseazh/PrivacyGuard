@@ -33,7 +33,7 @@ Windows 当前默认是规则模式，只识别格式稳定的敏感信息。跨
 
 ## 一句话安装下载很慢或中断
 
-直接重新执行同一条安装命令。组件缓存在 `~/Library/Caches/PrivacyGuardInstaller/v0.1.5`，`curl -C -` 会从已下载位置继续，不会从头开始。不要删除缓存、关闭 TLS 或跳过 SHA-256。
+直接重新执行同一条安装命令。新版缓存在 `~/Library/Caches/PrivacyGuardInstaller/source-v0.1.6`，`curl -C -` 会从已下载位置继续，不会从头开始。不要关闭 TLS 或跳过 SHA-256。完整缓存哈希错误时应隔离该组件后重下，不能认为续传必然修复已损坏内容。
 
 ## 模型从哪里下载
 
@@ -41,11 +41,15 @@ Windows 当前默认是规则模式，只识别格式稳定的敏感信息。跨
 
 ## 为什么不再使用 GitHub Release 或 DMG
 
-当前正式入口统一为 `https://privacyguard.snorlaxden.fun/install.sh`。国内服务器只托管安装脚本、源码和独立模型组件，以改善国内下载与断点续传；用户最终得到的是普通源码目录和 Python 虚拟环境，不是捆绑应用。
+新版入口为 README 中的 GitHub `install.sh`：固定提交源码来自 GitHub，国内服务器托管大模型和 RedactionEverything 组件。国内旧顶层 install.sh 尚未同步新版，不与新命令等价；得到的是源码目录和 Python 环境，不是捆绑应用。
+
+## WorkBuddy 返回“安全引用无效”
+
+`privacy_process_and_ask` 不返回内部凭证，`safe_file.path` 只能用于下载/打开，不可传给 `privacy_get_safe_content`。需要重新分析时再次调用高层入口；需要文件时展示已批准路径。当前没有高层安全全文展示工具，不得猜测引用或读取原文件绕过。
 
 ## 是否需要 VPN
 
-正常情况下不需要。源码和大模型组件来自国内下载域名，Python 包优先使用清华镜像；只有镜像缺包时才回退官方 PyPI。若公司网络同时阻止国内域名和 PyPI，应由网络管理员放行 HTTPS，不要关闭证书校验。
+大模型不需要访问 Hugging Face，来自国内域名；Python 包优先使用清华镜像，缺包时回退 PyPI。新版安装脚本和固定提交源码需要访问 GitHub/raw.githubusercontent.com/codeload.github.com；是否需要代理取决于当地网络，不承诺国内全部直连可用。可使用用户自己已配置且获准的网络代理；公司网络请管理员放行 HTTPS，不关闭证书校验。国内新版源码入口尚待同步，旧安装器不是等价替代。
 
 ## 为什么 RedactionEverything 显示部分离线
 

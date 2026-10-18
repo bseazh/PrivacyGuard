@@ -1,7 +1,9 @@
 {
   "version": "v0.1.5",
   "published_at": "2026-10-15",
-  "install_command": "curl -fsSL https://privacyguard.snorlaxden.fun/install.sh | bash",
+  "install_command": "curl -fsSL https://raw.githubusercontent.com/bseazh/PrivacyGuard/main/install.sh | bash",
+  "source_release_manifest": "https://raw.githubusercontent.com/bseazh/PrivacyGuard/main/config/source-release.json",
+  "component_version": "v0.1.5",
   "platforms": {
     "macos_arm64": {"status": "available", "mode": "script"},
     "macos_x64": {"status": "unsupported"},

@@ -5,7 +5,7 @@
 执行：
 
 ```bash
-curl -fsSL https://privacyguard.snorlaxden.fun/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/bseazh/PrivacyGuard/main/install.sh | bash
 ```
 
 Agent 应向用户说明：默认安装到 `~/Documents/PrivacyGuard`；下载约 4GB；100Mbps 网络理论下载约 6 分钟，20Mbps 约 28 分钟，实际还需 10–30 分钟安装 Python 依赖和首次加载模型。脚本会检查架构、内存、磁盘、Python、端口服务、SHA-256，并保留下载缓存以便断点续传。
@@ -19,3 +19,7 @@ Agent 应向用户说明：默认安装到 `~/Documents/PrivacyGuard`；下载�
 ```
 
 Agent 不得先读取原文件；默认必须一次调用 `privacy_process_and_ask`，且不得把安全正文取回宿主上下文。只有用户明确要求下载安全副本时才设置 `create_safe_copy=true`。LiteLLM 只保护 PrivacyGuard 管理的受控调用，不能声称其自动保护 Codex 原生流量。
+
+询问用户使用 Codex 还是 WorkBuddy。WorkBuddy 的配置只自动生成到 `local-config/workbuddy-mcp.json`；用户授权修改其配置后，先关闭 WorkBuddy，再运行 `scripts/configure_workbuddy.py --apply`。必须保留其他 MCP、保留备份、冲突不覆盖。按 `docs/workbuddy.md` 验收六工具与虚构材料；返回的安全副本路径不是安全引用，禁止传给 `privacy_get_safe_content`。
+
+当前新版入口为 GitHub 源码安装脚本，大模型仍来自国内服务器 v0.1.5，不再依赖旧源码压缩包。国内顶层 install.sh 尚未更新，不能告知用户两条命令等价。无 GitHub 网络或系统依赖时说明阻塞，不关闭 TLS、不跳过测试。完整安装器的本轮验证范围见发布记录，不得声称已在全新用户电脑验收。

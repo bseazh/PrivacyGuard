@@ -3,6 +3,7 @@ models/qwen3/
 models/**/*.bin
 models/**/*.gguf
 test-results/
+local-config/
 logs/
 .venv-mlx/
 .venv/

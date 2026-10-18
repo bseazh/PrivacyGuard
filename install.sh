@@ -1,19 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="v0.1.5"
-BASE_URL="${PRIVACYGUARD_DOWNLOAD_BASE:-https://privacyguard.snorlaxden.fun}/$VERSION"
+VERSION="source-v0.1.6"
+COMPONENT_VERSION="v0.1.5"
+# The release manifest pins source independently of domestic model assets.
+BASE_URL="${PRIVACYGUARD_DOWNLOAD_BASE:-https://privacyguard.snorlaxden.fun}/$COMPONENT_VERSION"
 TARGET_DIR="${PRIVACYGUARD_INSTALL_DIR:-$HOME/Documents/PrivacyGuard}"
 CACHE_DIR="${PRIVACYGUARD_CACHE_DIR:-$HOME/Library/Caches/PrivacyGuardInstaller/$VERSION}"
 
 fail() { echo "[失败] $*" >&2; exit 1; }
 step() { echo; echo "==> $*"; }
+trap 'echo "[失败] 安装未完成。保留缓存与日志，重新运行可续传；不要跳过校验。" >&2' ERR
 
 [[ "$(uname -s)" == "Darwin" ]] || fail "当前一键安装仅支持 macOS Apple Silicon。"
 [[ "$(uname -m)" == "arm64" ]] || fail "当前完整模式需要 M1/M2/M3/M4 系列 Apple Silicon Mac。"
 command -v curl >/dev/null || fail "系统缺少 curl。"
 command -v tar >/dev/null || fail "系统缺少 tar。"
 command -v shasum >/dev/null || fail "系统缺少 shasum。"
+command -v xcrun >/dev/null && xcrun --find clang >/dev/null 2>&1 || fail "缺少 Apple 命令行工具；运行 xcode-select --install，完成后重试。"
 
 memory_bytes="$(sysctl -n hw.memsize)"
 (( memory_bytes >= 12 * 1024 * 1024 * 1024 )) || fail "内存低于 12GB，无法可靠运行完整本地模型链路。"
@@ -32,20 +36,37 @@ for candidate in /opt/homebrew/bin/python3.11 /usr/local/bin/python3.11 "$(comma
   if [[ -n "$candidate" && -x "$candidate" ]]; then PYTHON_BIN="$candidate"; break; fi
 done
 if [[ -z "$PYTHON_BIN" ]]; then
+  [[ "${PRIVACYGUARD_PREFLIGHT_ONLY:-0}" != 1 ]] || fail "预检：未找到 Python 3.11；正式安装会尝试使用 Homebrew 安装。"
   command -v brew >/dev/null || fail "缺少 Python 3.11 和 Homebrew。请先从 https://brew.sh 安装 Homebrew，再重新运行本命令。"
   step "安装 Python 3.11"
   brew install python@3.11
   PYTHON_BIN="$(brew --prefix python@3.11)/bin/python3.11"
 fi
 
+if [[ "${PRIVACYGUARD_PREFLIGHT_ONLY:-0}" == 1 ]]; then
+  echo "[预检通过] Apple Silicon；内存 $((memory_bytes / 1024 / 1024 / 1024))GB；可用 $((free_kb / 1024 / 1024))GB；Python：$PYTHON_BIN；目录：$TARGET_DIR。未下载或安装依赖。"
+  exit 0
+fi
+
+step "读取 GitHub 源码发布清单"
+curl -fL --retry 5 --retry-delay 2 "https://raw.githubusercontent.com/bseazh/PrivacyGuard/main/config/source-release.json" -o "$CACHE_DIR/source-release.json"
+SOURCE_COMMIT="$("$PYTHON_BIN" -c 'import json,sys; print(json.load(open(sys.argv[1]))["commit"])' "$CACHE_DIR/source-release.json")"
+SOURCE_SHA256="$("$PYTHON_BIN" -c 'import json,sys; print(json.load(open(sys.argv[1]))["sha256"])' "$CACHE_DIR/source-release.json")"
+[[ "$SOURCE_COMMIT" =~ ^[0-9a-f]{40}$ && "$SOURCE_SHA256" =~ ^[0-9a-f]{64}$ ]] || fail "源码发布清单格式无效。"
+
 files=(
-  "PrivacyGuard-$VERSION-source.tar.gz"
-  "RedactionEverything-$VERSION-source.tar.gz"
-  "Qwen3-1.7B-bf16-$VERSION.tar.gz"
-  "RedactionEverything-HaS-0.6B-$VERSION.tar.gz"
-  "RedactionEverything-PaddleOCR-$VERSION.tar.gz"
+  "RedactionEverything-$COMPONENT_VERSION-source.tar.gz"
+  "Qwen3-1.7B-bf16-$COMPONENT_VERSION.tar.gz"
+  "RedactionEverything-HaS-0.6B-$COMPONENT_VERSION.tar.gz"
+  "RedactionEverything-PaddleOCR-$COMPONENT_VERSION.tar.gz"
 )
 
+step "预检通过：内存 $((memory_bytes / 1024 / 1024 / 1024))GB，目标分区可用 $((free_kb / 1024 / 1024))GB"
+echo "目录：$TARGET_DIR；缓存：$CACHE_DIR。模型约 4GB，20Mbps 理论约 28 分钟、100Mbps 约 6 分钟；依赖与首次推理另需约 10–30 分钟，实际取决于网络和电脑。"
+step "下载固定提交源码（GitHub；大模型仍来自国内服务器）"
+source_archive="$CACHE_DIR/PrivacyGuard-$SOURCE_COMMIT.tar.gz"
+curl -fL --retry 5 --retry-delay 2 -C - "https://codeload.github.com/bseazh/PrivacyGuard/tar.gz/$SOURCE_COMMIT" -o "$source_archive"
+[[ "$(shasum -a 256 "$source_archive" | awk '{print $1}')" == "$SOURCE_SHA256" ]] || fail "GitHub 源码 SHA-256 不匹配。"
 step "下载清单和组件（约 4GB，支持断点续传）"
 curl -fL --retry 5 --retry-delay 2 "$BASE_URL/SHA256SUMS" -o "$CACHE_DIR/SHA256SUMS"
 for name in "${files[@]}"; do
@@ -68,15 +89,15 @@ step "安装源码和独立模型组件"
 stage="$(mktemp -d "${TMPDIR:-/tmp}/privacyguard-install.XXXXXX")"
 trap 'rm -rf "$stage"' EXIT
 if [[ ! -f "$TARGET_DIR/.privacyguard-install-version" ]]; then
-  tar -xzf "$CACHE_DIR/PrivacyGuard-$VERSION-source.tar.gz" -C "$stage"
-  mv "$stage/PrivacyGuard-$VERSION" "$TARGET_DIR"
+  tar -xzf "$source_archive" -C "$stage"
+  mv "$stage/PrivacyGuard-$SOURCE_COMMIT" "$TARGET_DIR"
   printf '%s\n' "$VERSION" >"$TARGET_DIR/.privacyguard-install-version"
 fi
-[[ -d "$TARGET_DIR/redaction-everything/backend/app" ]] || tar -xzf "$CACHE_DIR/RedactionEverything-$VERSION-source.tar.gz" -C "$TARGET_DIR"
+[[ -d "$TARGET_DIR/redaction-everything/backend/app" ]] || tar -xzf "$CACHE_DIR/RedactionEverything-$COMPONENT_VERSION-source.tar.gz" -C "$TARGET_DIR"
 mkdir -p "$TARGET_DIR/models/qwen3"
-[[ -f "$TARGET_DIR/models/qwen3/Qwen3-1.7B-bf16/model.safetensors" ]] || tar -xzf "$CACHE_DIR/Qwen3-1.7B-bf16-$VERSION.tar.gz" -C "$TARGET_DIR/models/qwen3"
-[[ -f "$TARGET_DIR/redaction-everything/backend/models/has/has_4.0_0.6B.gguf" ]] || tar -xzf "$CACHE_DIR/RedactionEverything-HaS-0.6B-$VERSION.tar.gz" -C "$TARGET_DIR/redaction-everything"
-[[ -d "$TARGET_DIR/redaction-everything/backend/models/paddlex-cache/official_models" ]] || tar -xzf "$CACHE_DIR/RedactionEverything-PaddleOCR-$VERSION.tar.gz" -C "$TARGET_DIR/redaction-everything"
+[[ -f "$TARGET_DIR/models/qwen3/Qwen3-1.7B-bf16/model.safetensors" ]] || tar -xzf "$CACHE_DIR/Qwen3-1.7B-bf16-$COMPONENT_VERSION.tar.gz" -C "$TARGET_DIR/models/qwen3"
+[[ -f "$TARGET_DIR/redaction-everything/backend/models/has/has_4.0_0.6B.gguf" ]] || tar -xzf "$CACHE_DIR/RedactionEverything-HaS-0.6B-$COMPONENT_VERSION.tar.gz" -C "$TARGET_DIR/redaction-everything"
+[[ -d "$TARGET_DIR/redaction-everything/backend/models/paddlex-cache/official_models" ]] || tar -xzf "$CACHE_DIR/RedactionEverything-PaddleOCR-$COMPONENT_VERSION.tar.gz" -C "$TARGET_DIR/redaction-everything"
 chmod +x "$TARGET_DIR"/scripts/*.sh "$TARGET_DIR/install.sh"
 
 pip_install() {
@@ -117,6 +138,12 @@ step "运行 MCP 与真实 LiteLLM 端到端验收"
 cd "$TARGET_DIR"
 "$TARGET_DIR/.venv/bin/python" tests/mcp_smoke.py
 "$TARGET_DIR/.venv/bin/python" tests/secure_ask_live.py
+"$TARGET_DIR/.venv/bin/python" tests/ocr_coverage_live.py
+"$TARGET_DIR/.venv/bin/python" tests/answer_quality_live.py
+
+step "生成 WorkBuddy 配置（不覆盖现有 MCP）"
+"$TARGET_DIR/.venv/bin/python" scripts/configure_workbuddy.py
+echo "WorkBuddy 用户：先退出 WorkBuddy，再运行 $TARGET_DIR/.venv/bin/python $TARGET_DIR/scripts/configure_workbuddy.py --apply；然后重开应用。"
 
 if command -v codex >/dev/null 2>&1; then
   step "注册 Codex MCP 并安装 privacyguard Skill"

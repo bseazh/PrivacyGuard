@@ -9,6 +9,7 @@ PRIVACYGUARD_DATA_DIR = "/Users/YOUR_NAME/.privacyguard"
 PRIVACYGUARD_REFERENCE_TTL = "900"
 PRIVACYGUARD_PRESIDIO_URL = "http://127.0.0.1:5002"
 PRIVACYGUARD_REDACTION_BASE_URL = "http://127.0.0.1:8000"
+PRIVACYGUARD_REDACTION_OCR_URL = "http://127.0.0.1:8082"
 # Optional: use an existing Apple Silicon MLX environment.
 # PRIVACYGUARD_MLX_PYTHON = "/ABSOLUTE/PATH/TO/PrivacyGuard/.venv-mlx/bin/python"
 # PRIVACYGUARD_ENABLE_MLX_ENSEMBLE = "1" # Optional extra NER; HaS is the default.

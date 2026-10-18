@@ -30,6 +30,7 @@ MCP_ARGS=(
   --env "PRIVACYGUARD_REFERENCE_TTL=900"
   --env "PRIVACYGUARD_PRESIDIO_URL=http://127.0.0.1:5002"
   --env "PRIVACYGUARD_REDACTION_BASE_URL=http://127.0.0.1:8000"
+  --env "PRIVACYGUARD_REDACTION_OCR_URL=http://127.0.0.1:8082"
 )
 if [[ -x "$ROOT_DIR/.venv-mlx/bin/python" && -d "$ROOT_DIR/models/qwen3/Qwen3-1.7B-bf16" ]]; then
   MCP_ARGS+=(
