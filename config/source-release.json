@@ -1,7 +1,7 @@
 {
-  "installation_version": "source-v0.1.6",
-  "commit": "75fd6786d25076fa0e9d8c139171a574aae50172",
-  "sha256": "5c47c8d1ba91243b2f500db710ce8babd34f98ddade19feb614ee069e85a8940",
+  "installation_version": "source-v0.1.7",
+  "commit": "5ad484c0a092d79d00e462b0f5fedae242b03d02",
+  "sha256": "dc45941716b35f1fa2c5645a018efd29d6fea151e63af871cae2c451a1a9c1eb",
   "component_version": "v0.1.5",
   "published_at": "2026-10-18"
 }

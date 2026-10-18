@@ -1,8 +1,8 @@
 {
-  "version": "v0.1.5",
-  "published_at": "2026-10-15",
+  "version": "source-v0.1.7",
+  "published_at": "2026-10-18",
   "install_command": "curl -fsSL https://privacyguard.snorlaxden.fun/install.sh | bash",
-  "source_release_manifest": "https://privacyguard.snorlaxden.fun/source-v0.1.6/source-release.json",
+  "source_release_manifest": "https://privacyguard.snorlaxden.fun/source-v0.1.7/source-release.json",
   "component_version": "v0.1.5",
   "platforms": {
     "macos_arm64": {"status": "available", "mode": "script"},
@@ -10,7 +10,7 @@
     "windows_x64": {"status": "pending_validation"}
   },
   "components": [
-    "PrivacyGuard-v0.1.5-source.tar.gz",
+    "PrivacyGuard-5ad484c0a092d79d00e462b0f5fedae242b03d02.tar.gz",
     "RedactionEverything-v0.1.5-source.tar.gz",
     "Qwen3-1.7B-bf16-v0.1.5.tar.gz",
     "RedactionEverything-HaS-0.6B-v0.1.5.tar.gz",
