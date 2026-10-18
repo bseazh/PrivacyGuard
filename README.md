@@ -69,10 +69,10 @@ flowchart TB
 不提供 DMG 或捆绑应用。macOS Apple Silicon 用户在终端粘贴一条命令：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bseazh/PrivacyGuard/main/install.sh | bash
+curl -fsSL https://privacyguard.snorlaxden.fun/install.sh | bash
 ```
 
-脚本默认安装到 `~/Documents/PrivacyGuard`，预检 Apple Silicon、内存、磁盘、编译工具和 Python 3.11。固定提交源码从 GitHub 获取；大模型及 RedactionEverything 组件从国内服务器断点下载，全部强制校验 SHA-256。随后安装并启动 HaS/PaddleOCR、规则、Presidio、MLX/Qwen3、LiteLLM，运行 MCP、扫描 PDF OCR 和真实模型验收。网络不通、预检或验收失败会停止，不能跳过校验。
+脚本默认安装到 `~/Documents/PrivacyGuard`，预检 Apple Silicon、内存、磁盘、编译工具和 Python 3.11。固定提交源码与模型优先从国内服务器下载，源码另有 GitHub 备用；全部强制校验 SHA-256。随后安装并启动 HaS/PaddleOCR、规则、Presidio、MLX/Qwen3、LiteLLM，运行 MCP、扫描 PDF OCR 和真实模型验收。网络不通、预检或验收失败会停止，不能跳过校验。
 
 **WorkBuddy 用户**：安装后先退出 WorkBuddy，再运行以下命令安全合并 MCP（保留现有服务、备份配置、同名冲突不覆盖）：
 
@@ -84,7 +84,7 @@ curl -fsSL https://raw.githubusercontent.com/bseazh/PrivacyGuard/main/install.sh
 
 ![WorkBuddy MCP 配置步骤](docs/images/workbuddy-mcp-setup.svg)
 
-国内服务器 `https://privacyguard.snorlaxden.fun` 继续提供权重；其旧版 `install.sh` 尚未同步本次源码安装入口，不应与上方新版 GitHub 安装命令混用。完整能力目前仅验收 Apple Silicon，Windows/Intel Mac 不承诺一句话可用。
+国内服务器 `https://privacyguard.snorlaxden.fun` 提供脚本、固定源码和独立权重，不用 GitHub Release 承载模型。备用安装命令为 `curl -fsSL https://raw.githubusercontent.com/bseazh/PrivacyGuard/main/install.sh | bash`。完整能力目前仅验收 Apple Silicon，Windows/Intel Mac 不承诺一句话可用。
 
 组件总下载量约 4GB，安装后建议保留至少 12GB 可用空间。当前一句话完整模式只支持 M1/M2/M3/M4 系列 Mac；Windows 与 Intel Mac 尚未验收，不会伪装成可用。
 

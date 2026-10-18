@@ -48,8 +48,10 @@ if [[ "${PRIVACYGUARD_PREFLIGHT_ONLY:-0}" == 1 ]]; then
   exit 0
 fi
 
-step "读取 GitHub 源码发布清单"
-curl -fL --retry 5 --retry-delay 2 "https://raw.githubusercontent.com/bseazh/PrivacyGuard/main/config/source-release.json" -o "$CACHE_DIR/source-release.json"
+SOURCE_BASE="${PRIVACYGUARD_DOWNLOAD_BASE:-https://privacyguard.snorlaxden.fun}/source-v0.1.6"
+step "读取固定源码发布清单（国内优先，GitHub 备用）"
+curl -fL --retry 2 --connect-timeout 15 --max-time 60 "$SOURCE_BASE/source-release.json" -o "$CACHE_DIR/source-release.json" || \
+  curl -fL --retry 3 "https://raw.githubusercontent.com/bseazh/PrivacyGuard/main/config/source-release.json" -o "$CACHE_DIR/source-release.json"
 SOURCE_COMMIT="$("$PYTHON_BIN" -c 'import json,sys; print(json.load(open(sys.argv[1]))["commit"])' "$CACHE_DIR/source-release.json")"
 SOURCE_SHA256="$("$PYTHON_BIN" -c 'import json,sys; print(json.load(open(sys.argv[1]))["sha256"])' "$CACHE_DIR/source-release.json")"
 [[ "$SOURCE_COMMIT" =~ ^[0-9a-f]{40}$ && "$SOURCE_SHA256" =~ ^[0-9a-f]{64}$ ]] || fail "源码发布清单格式无效。"
@@ -63,9 +65,10 @@ files=(
 
 step "预检通过：内存 $((memory_bytes / 1024 / 1024 / 1024))GB，目标分区可用 $((free_kb / 1024 / 1024))GB"
 echo "目录：$TARGET_DIR；缓存：$CACHE_DIR。模型约 4GB，20Mbps 理论约 28 分钟、100Mbps 约 6 分钟；依赖与首次推理另需约 10–30 分钟，实际取决于网络和电脑。"
-step "下载固定提交源码（GitHub；大模型仍来自国内服务器）"
+step "下载固定提交源码（国内优先，GitHub 备用）"
 source_archive="$CACHE_DIR/PrivacyGuard-$SOURCE_COMMIT.tar.gz"
-curl -fL --retry 5 --retry-delay 2 -C - "https://codeload.github.com/bseazh/PrivacyGuard/tar.gz/$SOURCE_COMMIT" -o "$source_archive"
+curl -fL --retry 2 --connect-timeout 15 -C - "$SOURCE_BASE/PrivacyGuard-$SOURCE_COMMIT.tar.gz" -o "$source_archive" || \
+  curl -fL --retry 3 -C - "https://codeload.github.com/bseazh/PrivacyGuard/tar.gz/$SOURCE_COMMIT" -o "$source_archive"
 [[ "$(shasum -a 256 "$source_archive" | awk '{print $1}')" == "$SOURCE_SHA256" ]] || fail "GitHub 源码 SHA-256 不匹配。"
 step "下载清单和组件（约 4GB，支持断点续传）"
 curl -fL --retry 5 --retry-delay 2 "$BASE_URL/SHA256SUMS" -o "$CACHE_DIR/SHA256SUMS"

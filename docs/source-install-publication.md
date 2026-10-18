@@ -16,11 +16,11 @@
 
 国内四组件 HTTPS HEAD 均为 200；下载约 540KB 的 RedactionEverything 源码重新校验，匹配既有 SHA-256。大模型未在本轮重复下载 4GB。既有 OCR/MCP/真实模型端到端验收见 [质量验收](ocr-and-quality-acceptance.md)。新增安装器仍需在全新用户环境完成依赖安装验收，不能将现有虚拟环境的成功当作新机安装证明。
 
-## 国内服务器待同步
+## 国内服务器同步
 
-地址仍是用户提供的 `134.175.154.244`，账号 `ubuntu`，父目录 `/home/ubuntu/Project/Documents`。SSH 公钥认证本轮失败（Permission denied），没有覆盖远端文件。国内公开组件可访问，但顶层 install.sh、下载页、latest.json 仍是旧版；GitHub 新命令不依赖旧源码包。
+地址 `134.175.154.244`，账号 `ubuntu`。公钥认证失败后，用户提供的密码认证成功。Caddy 已确认站点根目录为 `/home/ubuntu/Project/Documents/PrivacyGuard`，无需改动代理或重启服务。
 
-管理员恢复 SSH 权限后，先检查 Nginx 实际站点根目录，再同步仓库的 `install.sh`、`deploy/domestic-download/index.html` 和 `latest.json`。不要猜测站点路径，不覆盖 v0.1.5 组件。发布后重新下载脚本和清单核对 SHA-256，再修改文档宣布国内安装入口等价。无需再次上传模型权重。
+顶层 install.sh、下载页、latest.json 同步本仓库；旧文件备份到 `.deploy-20261018`。固定提交源码及发布清单位于 `source-v0.1.6/`，源码 SHA-256 与 GitHub codeload 完整提交地址一致。安装器从国内优先读取清单和源码，GitHub 备用。已有 v0.1.5 模型和校验清单不覆盖，无需重传模型。密码不写入仓库或脚本。
 
 ## 用户验收
 

@@ -41,7 +41,7 @@ Windows 当前默认是规则模式，只识别格式稳定的敏感信息。跨
 
 ## 为什么不再使用 GitHub Release 或 DMG
 
-新版入口为 README 中的 GitHub `install.sh`：固定提交源码来自 GitHub，国内服务器托管大模型和 RedactionEverything 组件。国内旧顶层 install.sh 尚未同步新版，不与新命令等价；得到的是源码目录和 Python 环境，不是捆绑应用。
+新版入口为国内 `install.sh`，GitHub 提供备用脚本；固定源码国内优先、GitHub 备用，独立模型在国内服务器。得到的是源码目录和 Python 环境，不是捆绑应用。
 
 ## WorkBuddy 返回“安全引用无效”
 
@@ -49,7 +49,7 @@ Windows 当前默认是规则模式，只识别格式稳定的敏感信息。跨
 
 ## 是否需要 VPN
 
-大模型不需要访问 Hugging Face，来自国内域名；Python 包优先使用清华镜像，缺包时回退 PyPI。新版安装脚本和固定提交源码需要访问 GitHub/raw.githubusercontent.com/codeload.github.com；是否需要代理取决于当地网络，不承诺国内全部直连可用。可使用用户自己已配置且获准的网络代理；公司网络请管理员放行 HTTPS，不关闭证书校验。国内新版源码入口尚待同步，旧安装器不是等价替代。
+通常无需 VPN：脚本、固定源码及模型均有国内下载路径，Python 包优先使用清华镜像，缺包时回退 PyPI。只有国内源码路径失败时使用 GitHub 备用；网络是否可达取决于用户环境。公司网络请管理员放行 HTTPS，不关闭证书校验；系统依赖安装可能仍需其他站点。
 
 ## 为什么 RedactionEverything 显示部分离线
 

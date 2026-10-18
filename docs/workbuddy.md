@@ -7,10 +7,10 @@ PrivacyGuard 是本地 **stdio MCP + 后台服务**，不是把 `http://127.0.0.
 当前完整模式只支持 Apple Silicon Mac（最低 12GB 内存，建议 16GB 以上）。终端输入：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bseazh/PrivacyGuard/main/install.sh | bash
+curl -fsSL https://privacyguard.snorlaxden.fun/install.sh | bash
 ```
 
-默认目录 `~/Documents/PrivacyGuard`。安装器下载固定提交源码并校验 SHA-256；Qwen3、HaS、PaddleOCR 和 RedactionEverything 组件从国内服务器下载，不用 GitHub Release 承载权重。网络与依赖说明见 [安装指南](../INSTALL.md)。
+默认目录 `~/Documents/PrivacyGuard`。安装器优先从国内镜像下载固定提交源码并校验 SHA-256，GitHub 备用；Qwen3、HaS、PaddleOCR 和 RedactionEverything 组件从国内服务器下载，不用 GitHub Release 承载权重。网络与依赖说明见 [安装指南](../INSTALL.md)。
 
 ## 2. 生成并合并 MCP
 
