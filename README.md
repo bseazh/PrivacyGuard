@@ -4,7 +4,9 @@ PrivacyGuard 是面向中文法律材料的本地敏感信息识别、人工复�
 
 本仓库现在同时提供 Agent 安全入口：Microsoft Presidio、PrivacyGuard Core、MCP Server 和 Codex Skill。详细新手步骤见 [START_HERE.md](START_HERE.md)，产品与安全边界见 [PRD.md](PRD.md) 和 [ARCHITECTURE.md](ARCHITECTURE.md)。
 
-当前支持：
+文档统一入口：[文档导航](docs/README.md) · [安全脱敏原理](docs/privacy-principles.md) · [数据流与安全边界](docs/data-flow-and-boundaries.md) · [可复现验收](docs/reproducible-acceptance.md)。
+
+以下为不同产品入口的能力汇总，不能理解为 MCP 和 Gateway 均已支持全部功能：
 
 - TXT、Markdown、EML、DOCX 和有文本层的 PDF；
 - 手机号、身份证、邮箱、银行卡等规则识别；
@@ -13,6 +15,8 @@ PrivacyGuard 是面向中文法律材料的本地敏感信息识别、人工复�
 - Token、语义假名（人员A/机构A）和自然假名（李明/星河科技）三种替换方式；
 - 有文本层 PDF 的安全删除和原位假名写入；
 - AES-256-GCM 加密映射导出。
+
+上面的人工复核、多种假名、原位 PDF 写入和映射导出属于桌面/文档处理功能；MCP 默认采用 HaS + 规则 + Presidio 识别和结构化占位符，安全副本采用独立重建验证；Gateway 当前只处理非流式纯文本，不提供文件导出或授权回填。额外 MLX NER 默认关闭；Qwen3 在默认受控链路中负责分析。入口差异及尚未解决的缺口见 [安全边界](docs/data-flow-and-boundaries.md)。
 
 ## 总体架构与执行边界
 
