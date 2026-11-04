@@ -43,6 +43,7 @@ class LiteLLMAdapter:
         self.settings.validate()
 
     async def complete(self, messages: list[dict[str, str]]) -> str:
+        self.last_metadata = {}
         os.environ["LITELLM_LOCAL_MODEL_COST_MAP"] = "True"
         import litellm
         from openai import AsyncOpenAI
@@ -69,4 +70,10 @@ class LiteLLMAdapter:
             raise ValueError("模型响应为空或包含未批准工具调用")
         if len(message.content) > 20_000:
             raise ValueError("模型响应超限")
+        self.last_metadata = {'finish_reason': 'stop'}
+        usage = getattr(result, 'usage', None)
+        for key in ('prompt_tokens', 'completion_tokens', 'total_tokens'):
+            value = getattr(usage, key, None)
+            if type(value) is int and 0 <= value <= 1_000_000_000:
+                self.last_metadata[key] = value
         return message.content

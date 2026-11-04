@@ -54,7 +54,63 @@ flowchart TB
 
 最新实测见 [OCR、真实材料标注与回答质量验收](docs/ocr-and-quality-acceptance.md)：两页扫描 PDF 与本地模型受控回答已跑通；5 份真实材料、60 个候选仍需人工确认，真实召回率尚未产生。
 
-## Gateway 管理后台规划（待实现）
+## Gateway：本机原型与管理后台规划
+
+已实现 [策略编辑 → 测试 → 发布 → 启用 → Trace → 回滚](docs/gateway-policy-workflow.md)：后台可按类型编辑请求/回答的 `REDACT` 或 `BLOCK` 动作，保存后运行 45 个固定虚构断言，通过后生成不可变版本，再显式绑定 Channel。草稿和发布本身不改变线上行为。内置表达式仍由代码维护，不开放任意正则和敏感原值放行；回填暂不实现。
+
+2026-11-04：本机网关及管理员后台已实现。后台 `http://127.0.0.1:8787/admin` 支持用户、Channel、授权、Key 发放/撤销、虚构材料真实调用及审计；每个 Key 绑定用户和 Channel。API 地址 `http://127.0.0.1:8787/v1`。浏览器已验收真实识别/假名化 → LiteLLM → 本机模型 → 回答检查，以及策略启用阻断、回滚恢复和 Trace 版本核对，见 [后台使用](docs/gateway-admin.md)、[原型启动指南](docs/gateway-local-run.md) 和 [策略与 Trace](docs/gateway-policy-trace.md)。仍仅支持单组织本机部署、固定上游和非流式纯文本；回填、多模型管理及 WorkBuddy/Codex 原生客户端兼容后置。
+
+```mermaid
+flowchart TD
+    E[管理员编辑请求/回答动作] --> S[保存草稿：旧测试失效]
+    S --> T[固定虚构样例：运行真实动作引擎]
+    T -->|失败| E
+    T -->|通过且草稿未变| P[发布不可变版本：尚未上线]
+    P --> D[查看与目标 Channel 的动作差异]
+    D --> A[显式启用或选择历史版本回滚]
+    A --> N[后续请求固定该版本快照]
+    C[客户端 Key / 用户 / Channel 鉴权] --> N
+    N --> I[HaS / Presidio / 内置规则合并]
+    I --> R[按请求策略阻断或假名化并复检]
+    R --> U[发送前再授权 → LiteLLM → 本机模型]
+    U --> O[同版本回答策略 → 复检 → 返回前再授权]
+    O --> F[交付获准回答与 request_id]
+    N -.-> X[Trace：版本、命中、动作、耗时、错误码]
+    R -.-> X
+    U -.-> X
+    O -.-> X
+```
+
+任一必要检查失败就阻断，不发送未经批准的请求或交付未经批准的回答。Trace 不保存正文、原值、密钥或映射。策略切换仅影响新请求；Key 撤销和通道禁用仍在发送前、返回前重新检查。
+
+### 管道如何识别，而不只是匹配正则
+
+网关与 MCP **复用 `PrivacyGuard.detect` 识别核心**：默认由 RedactionEverything 调用 **HaS 0.6B 小模型**扫描文本，合并预设格式规则和 Presidio 补充检测。策略不是识别模型：模型回答“哪一段是什么实体”，策略版本决定“这种实体应脱敏还是阻断”。修改动作不会训练模型，也不会关闭其他实体检测。
+
+```mermaid
+flowchart TD
+    M[MCP：本地文件路径] --> F[RedactionEverything 解析文件\n扫描 PDF 先逐页 OCR 并检查页码覆盖]
+    F --> TEXT[待识别文本]
+    G[Gateway：鉴权后的纯文本 messages\n当前不接受文件、图片或多模态] --> TEXT
+    TEXT --> W[共享 PrivacyGuard.detect\n长文本 2400 字符 / 重叠 300]
+    W --> H[RedactionEverything → HaS 0.6B\n语义实体：姓名、机构、地址等]
+    W --> RULE[预设格式规则\n手机号、邮箱、证件等候选]
+    W --> PRE[本地 Presidio\n补充实体检测]
+    H --> MERGE[区间验证、重复值扩展、重叠合并\n输出：类型 / 起止位置 / 置信度]
+    RULE --> MERGE
+    PRE --> MERGE
+    MERGE --> POLICY[网关额外内置规则 + 请求固定策略版本\n强制凭据检查 / 不确定实体阻断]
+    POLICY -->|BLOCK| STOP[停止，不调用分析模型]
+    POLICY -->|REDACT| MASK[PrivacyGuard 统一假名化\nPERSON_001 / PHONE_001 等带尖括号占位符]
+    MASK --> CHECK[再次执行共享检测与残留检查\n失败立即阻断]
+    CHECK -->|通过 + 再授权 + 审计成功| L[LiteLLM 发送获准消息\n本机 Qwen3 1.7B 做分析，不负责替代 HaS]
+    L --> OUT[同策略版本检查回答\n阻断或假名化后复检]
+    OUT -->|检查、授权、审计均通过| RETURN[返回回答与 request_id\nTrace 保存版本、动作、计数，不保存正文]
+```
+
+图中共享检测后的策略/授权/Trace 部分是网关执行路径；MCP 使用自己的安全引用和受控问答调度，**不是自动串行穿过网关**。MCP 文件输出另有安全副本验证，网关文本请求不会运行 OCR 或生成文件。额外 MLX NER 仅在显式配置后启用，默认不是必需的第二个识别模型。
+
+安全保证是“所有必选检查通过后才能发送或返回，检查失败不退回原文”，不是“模型绝对不会漏识别”。Trace 证明该请求经过了哪些检查，不能证明零漏敏。识别服务会在本机接触原文；不留存 Trace 正文不等于解析服务不落盘，文件上传区和本机临时文件仍需单独管理。完整职责、代码依据、测试证据及限制见 [识别管道技术路线](docs/gateway-recognition-architecture.md)。
 
 计划在现有文件处理 / MCP 层之后增加 API 安全网关：管理员统一管理用户、网关 Key、上游模型、Channel、请求/回答策略、测试、版本发布和审计。Channel 绑定授权用户、一个上游连接及确切策略版本；保存草稿不立即上线，测试后显式启用。
 
@@ -66,7 +122,7 @@ flowchart TB
 - [分阶段 TODO 与验收矩阵](docs/gateway-todo.md)
 - [GitHub 跟踪 Issue #1](https://github.com/bseazh/PrivacyGuard/issues/1) · [仓库内任务正文](docs/gateway-epic.md)
 
-这部分目前是设计草案，不代表网关已运行；现有安装入口和 MCP 链路不因该规划改变。
+以下文档描述完整目标，不能将原型验收等同于全部目标完成；现有安装入口和 MCP 链路保持原有流程。
 
 ## 现有文件处理链路的后续工作
 
