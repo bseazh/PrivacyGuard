@@ -18,7 +18,7 @@ def csrf(token):
     return hashlib.sha256(('csrf:' + token).encode()).hexdigest()
 
 
-def install_admin(app, state, default_config):
+def install_admin(app, state, default_config, policies):
     @app.get('/')
     async def root():
         return RedirectResponse('/admin')
@@ -69,6 +69,22 @@ def install_admin(app, state, default_config):
                 return {**state.snapshot(tenant), 'upstream': default_config.__dict__, 'policy': VERSION}
             if operation == 'policies' and request.method == 'GET':
                 return catalog()
+            if operation == 'policy-workflow' and request.method == 'GET':
+                return policies.snapshot(tenant)
+            if operation in ('policy-save', 'policy-check', 'policy-publish', 'policy-activate') and request.method == 'POST':
+                fields = {'policy-save': {'generation', 'content'}, 'policy-check': {'generation'},
+                          'policy-publish': {'generation'}, 'policy-activate': {'channel', 'version', 'expected'}}
+                if set(data) != fields[operation]:
+                    raise ValueError()
+                if operation == 'policy-save':
+                    return policies.save(tenant, data['generation'], data['content'])
+                if operation == 'policy-check':
+                    return policies.test(tenant, data['generation'])
+                if operation == 'policy-publish':
+                    return policies.publish(tenant, data['generation'])
+                if any(not isinstance(v, str) or len(v) > 100 for v in data.values()):
+                    raise ValueError()
+                return policies.activate(tenant, data['channel'], data['version'], data['expected'])
             if operation == 'policy-tests' and request.method == 'POST':
                 if data:
                     raise ValueError()

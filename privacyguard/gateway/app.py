@@ -21,6 +21,7 @@ from privacyguard.rules import merge_findings
 from .state import State
 from .policies import CREDENTIAL, VERSION, detect_builtin
 from .trace import Trace
+from .policy_versions import PolicyVersions, DEFAULT, validate, action
 
 TOKEN = re.compile(r'<[A-Z_]+_[0-9]{3,}>')
 MAX_BYTES = 32768
@@ -54,8 +55,9 @@ class Config:
 
 
 class Protection:
-    def __init__(self, detector):
+    def __init__(self, detector, policy=None):
         self.detector = detector
+        self.policy = validate(DEFAULT if policy is None else policy)
         self.mapping = {}
         self.counters = {}
         self.count = 0
@@ -63,7 +65,7 @@ class Protection:
         self.matched_rules = set()
         self.last_counts = {}
 
-    def findings(self, text):
+    def findings(self, text, direction=None):
         items = self.detector(text)
         builtins = detect_builtin(text)
         self.matched_rules.update('builtin.' + item.entity_type.lower() for item in builtins)
@@ -79,6 +81,10 @@ class Protection:
         self.last_counts = {}
         for item in merged:
             self.last_counts[item.entity_type] = self.last_counts.get(item.entity_type, 0) + 1
+        # Check every candidate before overlap suppression: BLOCK must not be
+        # hidden by a longer REDACT span of another entity type.
+        if direction and any(action(self.policy, direction, item.entity_type) == 'BLOCK' for item in items):
+            raise Blocked('policy_blocked')
         return merged
 
     def check_credentials(self, text):
@@ -86,10 +92,17 @@ class Protection:
             self.matched_rules.add('credential.block')
             raise Blocked('credential_blocked')
 
-    def protect(self, text):
+    def protect(self, text, direction='request'):
         self.check_credentials(text)
+        if direction not in ('request', 'response'):
+            raise ValueError('invalid_direction')
+        if direction == 'response':
+            self.check_tokens(text)
+            inspected = TOKEN.sub(lambda m: ' ' * len(m.group()), text)
+        else:
+            inspected = text
         pieces, cursor = [], 0
-        for item in self.findings(text):
+        for item in self.findings(inspected, direction) if inspected.strip() else []:
             key = (item.entity_type, text[item.start:item.end])
             if key not in self.mapping:
                 self.counters[item.entity_type] = self.counters.get(item.entity_type, 0) + 1
@@ -103,12 +116,15 @@ class Protection:
         self.verify(result)
         return result
 
-    def verify(self, text):
-        self.check_credentials(text)
+    def check_tokens(self, text):
         registered = set(self.mapping.values())
         for token in TOKEN.findall(text):
             if token not in registered:
                 raise Blocked('unknown_placeholder')
+
+    def verify(self, text):
+        self.check_credentials(text)
+        self.check_tokens(text)
         masked = TOKEN.sub(lambda m: ' ' * len(m.group()), text)
         if masked.strip() and self.findings(masked):
             raise Blocked('residual_detected')
@@ -147,6 +163,7 @@ def parse_body(raw):
 def create_app(state: State, config: Config, detector=None, adapter=None):
     config.validate()
     state.configure_default(config.__dict__)
+    policies = PolicyVersions(state)
     if detector is None:
         core = PrivacyGuard()
         core.redaction.timeout = 15
@@ -154,7 +171,7 @@ def create_app(state: State, config: Config, detector=None, adapter=None):
         detector = core.detect
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
     from .admin import install_admin
-    install_admin(app, state, config)
+    install_admin(app, state, config, policies)
     busy = False
 
     def error(code, status, rid):
@@ -211,12 +228,13 @@ def create_app(state: State, config: Config, detector=None, adapter=None):
             token, context = authenticate(request)
             selected = Config(**json.loads(context['config']))
             selected.validate()
-            revision = context['channel_id'] + ':' + selected.revision
+            policy_version, policy = policies.active(context['tenant'], context['channel_id'])
+            revision = context['channel_id'] + ':' + selected.revision + ':' + policy_version
             if not state.admit(rid, context['user_id'], revision, context['channel_id']):
                 raise Blocked('rate_limited', 429)
             admitted = True
             trace = Trace(state, rid)
-            with trace.stage('authorization', {'channel_id': context['channel_id'], 'policy_version': VERSION}):
+            with trace.stage('authorization', {'channel_id': context['channel_id'], 'policy_version': policy_version}):
                 if not state.authenticate(token):
                     raise Blocked('invalid_key', 401)
             if busy:
@@ -243,13 +261,13 @@ def create_app(state: State, config: Config, detector=None, adapter=None):
                 if time.monotonic() > deadline:
                     raise Blocked('inspection_timeout', 503)
                 return findings
-            protection = Protection(bounded_detector)
+            protection = Protection(bounded_detector, policy)
 
             def prepare():
                 return [{'role': m['role'], 'content': protection.protect(m['content'])} for m in body['messages']]
 
             # The worker is bounded to one request. On cancellation keep the slot until it exits.
-            with trace.stage('request.policy') as meta:
+            with trace.stage('request.policy', {'policy_version': policy_version, 'action': 'BLOCK'}) as meta:
                 for message in body['messages']:
                     if TOKEN.search(message['content']):
                         raise Blocked('unregistered_placeholder')
@@ -259,7 +277,8 @@ def create_app(state: State, config: Config, detector=None, adapter=None):
                 try:
                     safe_messages = await anyio.to_thread.run_sync(prepare)
                 finally:
-                    meta.update(entity_counts=protection.hit_counts, matched_rules=sorted(protection.matched_rules))
+                    meta.update(entity_counts=protection.hit_counts, detected_entity_counts=protection.last_counts,
+                                matched_rules=sorted(protection.matched_rules))
                 meta.update(action='REDACT' if protection.count else 'ALLOW', recheck='passed',
                             output_messages=[{'role': m['role'], 'characters': len(m['content'])} for m in safe_messages])
             with trace.stage('upstream.authorization'):
@@ -281,14 +300,20 @@ def create_app(state: State, config: Config, detector=None, adapter=None):
                     meta['finish_reason'] = 'stop'
                 meta['usage'] = {k: metadata.get(k) for k in ('prompt_tokens','completion_tokens','total_tokens')
                                  if type(metadata.get(k)) is int and 0 <= metadata[k] <= 1_000_000_000}
-            with trace.stage('response.policy', {'action_on_sensitive': 'BLOCK'}) as meta:
+            with trace.stage('response.policy', {'policy_version': policy_version, 'action': 'BLOCK'}) as meta:
                 protection.matched_rules.clear()
                 protection.last_counts = {}
+                previous_count = protection.count
+                previous_hits = dict(protection.hit_counts)
                 try:
-                    await anyio.to_thread.run_sync(protection.verify, answer)
+                    answer = await anyio.to_thread.run_sync(protection.protect, answer, 'response')
                 finally:
                     meta.update(matched_rules=sorted(protection.matched_rules), detected_entity_counts=protection.last_counts)
+                    meta['redacted_entity_counts'] = {k: v - previous_hits.get(k, 0)
+                                                      for k, v in protection.hit_counts.items()
+                                                      if v > previous_hits.get(k, 0)}
                 meta['result'] = 'no_detected_residual'
+                meta['action'] = 'REDACT' if protection.count > previous_count else 'ALLOW'
             with trace.stage('response.release', {'object': 'chat.completion', 'role': 'assistant', 'content_retained': False}):
                 if not state.authenticate(token):
                     raise Blocked('invalid_key', 401)

@@ -33,7 +33,7 @@
 
 测试只执行内置格式规则，不调用上游模型、不接收任意真实材料、不修改线上规则。页面展示虚构输入及替换结果。每行断言针对指定规则；例如身份证校验失败不代表整个请求会 ALLOW，其他规则仍可能将其视为银行卡候选。不将这些单元测试成绩当作 HaS 真实材料召回率。
 
-本轮仍是代码随部署发布的只读内置规则集；未实现管理员任意表达式编辑、草稿发布、版本回滚或自动灰度。请求记录实际规则版本，不能把本次实现当作完整策略编辑器。
+表达式仍由代码维护；请求/回答动作现已支持管理员编辑、草稿测试、不可变发布、Channel 显式启用和回滚，见 [完整操作与验收](gateway-policy-workflow.md)。上面的 11 个例子展示基线规则；发布门槛额外运行各类型动作与强制阻断断言，共 45 个。未提供任意表达式编辑或自动灰度。
 
 ## Trace 放在哪里
 
@@ -56,7 +56,7 @@ flowchart LR
 | request.policy | 命中内置规则 ID、合并后的实体类型/数量、ALLOW/REDACT/BLOCK、复检结果 |
 | upstream.authorization | Key、用户、通道、授权是否仍有效 |
 | upstream.call | 目标路由、客户端模型别名、上游模型名称、单次调用耗时、回答长度、可得的 finish_reason/token 用量 |
-| response.policy | 回答命中规则及实体计数、PASS/BLOCK/ERROR |
+| response.policy | 固定策略版本、回答命中规则、检测/脱敏计数、实际动作及 PASS/BLOCK/ERROR |
 | response.release | chat.completion 结构、assistant 角色、返回前检查；不留存正文 |
 
 每个阶段有开始时间、状态及毫秒耗时。未走到上游时没有上游阶段；调用报错时不推断“上游绝对没有收到”，只有成功返回才能证明收到完整回答。RUNNING/PENDING 表示尚未完成或异常中断，不能当作通过。Token 用量只记录上游实际提供的整数，没有就留空，不估算。
@@ -94,4 +94,4 @@ flowchart LR
 node scripts/gateway_admin_browser.mjs local-config/gateway-dev-20261104
 ```
 
-自动测试：89 passed、12 subtests passed。覆盖 11 个正反例、内置检测真实参与、请求阻断时无上游阶段、回答阻断、不保存敏感原值/密钥/正文、跨组织隔离及 Trace 存储失败闭锁。浏览器测试额外检查策略测试页、真实调用的 Trace 展开与临时回答展示。
+初版自动测试：89 passed、12 subtests passed。新增策略版本流程后为 105 passed、12 subtests passed，命令及浏览器完整验收见 [策略工作流](gateway-policy-workflow.md)。包括格式正反例、内置检测真实参与、请求阻断时无上游阶段、回答阻断、不保存敏感原值/密钥/正文、跨组织隔离、Trace 存储失败闭锁，以及发布/启用/回滚。

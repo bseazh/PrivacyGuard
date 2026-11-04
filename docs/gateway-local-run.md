@@ -30,7 +30,7 @@
 .venv/bin/python -m privacyguard.gateway serve --directory local-config/gateway-dev
 ```
 
-初始化拒绝覆盖现有目录。启动是前台运行，Ctrl+C 停止；占用 8787 时启动失败，不结束其他进程。配置修改仅在重启生效；版本由配置摘要与策略版本标记组成，尚无后台草稿/启用流程。
+初始化拒绝覆盖现有目录。上述启动是前台运行，Ctrl+C 停止；占用 8787 时启动失败，不结束其他进程。模型配置仍是创建 Channel 时的快照，不随 config.json 自动覆盖。策略动作现可在后台经过草稿、测试、发布和显式启用后生效，不必重启；请求记录模型配置摘要及不可变策略版本，见 [策略工作流](gateway-policy-workflow.md)。
 
 另开终端验收：
 
