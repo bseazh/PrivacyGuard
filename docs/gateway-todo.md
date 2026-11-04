@@ -1,6 +1,6 @@
 # Gateway TODO 与验收
 
-日期：2026-11-04。当前仅完成方案整理，下面所有实现项均未完成。基线：[管理后台与管控流程](gateway-design.md)。GitHub 跟踪正文：[Gateway Epic](gateway-epic.md)。
+日期：2026-11-04。当前仅完成方案整理，下面所有实现项均未完成。基线：[管理后台与管控流程](gateway-design.md)。GitHub 跟踪：[Issue #1](https://github.com/bseazh/PrivacyGuard/issues/1)；仓库内正文：[Gateway Epic](gateway-epic.md)。
 
 ## G0：设计基线与评审
 

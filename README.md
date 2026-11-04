@@ -64,7 +64,7 @@ flowchart TB
 
 - [完整目标架构、后台流程与管控规则](docs/gateway-design.md)
 - [分阶段 TODO 与验收矩阵](docs/gateway-todo.md)
-- [GitHub Epic 跟踪任务正文](docs/gateway-epic.md)
+- [GitHub 跟踪 Issue #1](https://github.com/bseazh/PrivacyGuard/issues/1) · [仓库内任务正文](docs/gateway-epic.md)
 
 这部分目前是设计草案，不代表网关已运行；现有安装入口和 MCP 链路不因该规划改变。
 
