@@ -21,3 +21,7 @@ README 中的 Mermaid 图是当前架构基线，包含分析、下载、失败�
 `privacy_secure_ask` 只接受已批准引用和两个固定任务。重验引用及文件摘要、重新抽取安全副本文本、再次运行 PrivacyGuard 实体检测后，直接调用 LiteLLM `CustomGuardrail.apply_guardrail`，再由 LiteLLM SDK 发出请求。请求 guardrail 固定为本机 Presidio，失败即阻断；输出再经语义检测。审计测试记录了 `guardrail.start -> Presidio HTTP -> guardrail.passed -> upstream.received` 顺序，并覆盖 guardrail 错误时上游收件数为 0。
 
 真实模型配置可指向本机 MLX server 或 HTTPS OpenAI-compatible provider。只适用于 PrivacyGuard 自身控制的调用，不能描述为接管 Codex 或 WorkBuddy 的内置模型流量。LiteLLM telemetry、消息 logging 和 SDK callbacks 均关闭；HTTP 使用 `trust_env=False`，禁用重试和重定向。
+
+## Gateway 扩展设计（2026-11-04，待实现）
+
+现有架构之外新增 API 网关的设计见 [Gateway 管理后台与管控流程](docs/gateway-design.md)，实施任务见 [TODO 与验收](docs/gateway-todo.md)。网关与现有 MCP 为两个入口；不将固定任务 `secure_ask` 改为任意代理。Channel、策略版本、权限与受控回填均须按上述文档独立实现和验收。本段为规划，不改变上述现有能力描述。
