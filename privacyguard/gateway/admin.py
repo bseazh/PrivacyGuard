@@ -7,6 +7,7 @@ from pathlib import Path
 
 from fastapi import Request
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
+from .policies import catalog, run_examples, VERSION
 
 ASSETS = Path(__file__).with_name('web')
 ORIGIN = 'http://127.0.0.1:8787'
@@ -65,7 +66,19 @@ def install_admin(app, state, default_config):
             if operation == 'session' and request.method == 'GET':
                 return {'csrf': csrf(token), 'tenant': tenant}
             if operation == 'snapshot' and request.method == 'GET':
-                return {**state.snapshot(tenant), 'upstream': default_config.__dict__, 'policy': 'policy-1'}
+                return {**state.snapshot(tenant), 'upstream': default_config.__dict__, 'policy': VERSION}
+            if operation == 'policies' and request.method == 'GET':
+                return catalog()
+            if operation == 'policy-tests' and request.method == 'POST':
+                if data:
+                    raise ValueError()
+                return run_examples()
+            if operation == 'trace' and request.method == 'GET':
+                request_id = request.query_params.get('id', '')
+                import re
+                if not re.fullmatch(r'[a-f0-9]{32}', request_id):
+                    raise ValueError()
+                return state.read_trace(tenant, request_id)
             if operation == 'logout' and request.method == 'POST':
                 state.logout(token)
                 response = JSONResponse({'ok': True})

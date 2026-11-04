@@ -19,9 +19,10 @@ from privacyguard.adapters.litellm import LLMSettings, LiteLLMAdapter
 from privacyguard.core import PrivacyGuard, UNCERTAIN_SEMANTIC_TYPES
 from privacyguard.rules import merge_findings
 from .state import State
+from .policies import CREDENTIAL, VERSION, detect_builtin
+from .trace import Trace
 
 TOKEN = re.compile(r'<[A-Z_]+_[0-9]{3,}>')
-CREDENTIAL = re.compile(r'-----BEGIN [A-Z ]*PRIVATE KEY-----|\bsk-[A-Za-z0-9_-]{12,}', re.I)
 MAX_BYTES = 32768
 
 
@@ -49,7 +50,7 @@ class Config:
 
     @property
     def revision(self):
-        return hashlib.sha256(json.dumps(self.__dict__, sort_keys=True).encode()).hexdigest()[:16] + ':policy-1'
+        return hashlib.sha256(json.dumps(self.__dict__, sort_keys=True).encode()).hexdigest()[:16] + ':' + VERSION
 
 
 class Protection:
@@ -58,9 +59,15 @@ class Protection:
         self.mapping = {}
         self.counters = {}
         self.count = 0
+        self.hit_counts = {}
+        self.matched_rules = set()
+        self.last_counts = {}
 
     def findings(self, text):
         items = self.detector(text)
+        builtins = detect_builtin(text)
+        self.matched_rules.update('builtin.' + item.entity_type.lower() for item in builtins)
+        items = items + builtins
         for item in items:
             if (not 0 <= item.start < item.end <= len(text)
                     or not re.fullmatch(r'[A-Z_]+', item.entity_type)
@@ -68,10 +75,15 @@ class Protection:
                 raise Blocked('detector_invalid', 503)
             if item.entity_type in UNCERTAIN_SEMANTIC_TYPES and item.score < .85:
                 raise Blocked('review_required')
-        return merge_findings(items)
+        merged = merge_findings(items)
+        self.last_counts = {}
+        for item in merged:
+            self.last_counts[item.entity_type] = self.last_counts.get(item.entity_type, 0) + 1
+        return merged
 
     def check_credentials(self, text):
         if CREDENTIAL.search(text):
+            self.matched_rules.add('credential.block')
             raise Blocked('credential_blocked')
 
     def protect(self, text):
@@ -85,6 +97,7 @@ class Protection:
             pieces.extend((text[cursor:item.start], self.mapping[key]))
             cursor = item.end
             self.count += 1
+            self.hit_counts[item.entity_type] = self.hit_counts.get(item.entity_type, 0) + 1
         pieces.append(text[cursor:])
         result = ''.join(pieces)
         self.verify(result)
@@ -202,25 +215,26 @@ def create_app(state: State, config: Config, detector=None, adapter=None):
             if not state.admit(rid, context['user_id'], revision, context['channel_id']):
                 raise Blocked('rate_limited', 429)
             admitted = True
+            trace = Trace(state, rid)
+            with trace.stage('authorization', {'channel_id': context['channel_id'], 'policy_version': VERSION}):
+                if not state.authenticate(token):
+                    raise Blocked('invalid_key', 401)
             if busy:
                 raise Blocked('gateway_busy', 429)
             busy = acquired = True
-            if request.headers.get('content-encoding') or request.headers.get('content-type', '').split(';')[0] != 'application/json':
-                raise Blocked('unsupported_request', 400)
-            raw = bytearray()
-            async with asyncio.timeout(10):
-                async for chunk in request.stream():
-                    raw.extend(chunk)
-                    if len(raw) > MAX_BYTES:
-                        raise Blocked('request_too_large', 413)
-            body = parse_body(raw)
-            if body['model'] != selected.public_model:
-                raise Blocked('model_not_allowed', 403)
-            for message in body['messages']:
-                if TOKEN.search(message['content']):
-                    raise Blocked('unregistered_placeholder')
-                if CREDENTIAL.search(message['content']):
-                    raise Blocked('credential_blocked')
+            with trace.stage('request.validation') as meta:
+                if request.headers.get('content-encoding') or request.headers.get('content-type', '').split(';')[0] != 'application/json':
+                    raise Blocked('unsupported_request', 400)
+                raw = bytearray()
+                async with asyncio.timeout(10):
+                    async for chunk in request.stream():
+                        raw.extend(chunk)
+                        if len(raw) > MAX_BYTES:
+                            raise Blocked('request_too_large', 413)
+                body = parse_body(raw)
+                if body['model'] != selected.public_model:
+                    raise Blocked('model_not_allowed', 403)
+                meta.update(bytes=len(raw), messages=[{'role': m['role'], 'characters': len(m['content'])} for m in body['messages']], stream=False)
             deadline = time.monotonic() + 120
             def bounded_detector(text):
                 if time.monotonic() > deadline:
@@ -235,19 +249,50 @@ def create_app(state: State, config: Config, detector=None, adapter=None):
                 return [{'role': m['role'], 'content': protection.protect(m['content'])} for m in body['messages']]
 
             # The worker is bounded to one request. On cancellation keep the slot until it exits.
-            safe_messages = await anyio.to_thread.run_sync(prepare)
-            if not state.authenticate(token):
-                raise Blocked('invalid_key', 401)
-            state.finish(rid, 'PENDING', 'pre_send', protection.count)
+            with trace.stage('request.policy') as meta:
+                for message in body['messages']:
+                    if TOKEN.search(message['content']):
+                        raise Blocked('unregistered_placeholder')
+                    if CREDENTIAL.search(message['content']):
+                        meta.update(matched_rules=['credential.block'], action='BLOCK')
+                        raise Blocked('credential_blocked')
+                try:
+                    safe_messages = await anyio.to_thread.run_sync(prepare)
+                finally:
+                    meta.update(entity_counts=protection.hit_counts, matched_rules=sorted(protection.matched_rules))
+                meta.update(action='REDACT' if protection.count else 'ALLOW', recheck='passed',
+                            output_messages=[{'role': m['role'], 'characters': len(m['content'])} for m in safe_messages])
+            with trace.stage('upstream.authorization'):
+                if not state.authenticate(token):
+                    raise Blocked('invalid_key', 401)
+                state.finish(rid, 'PENDING', 'pre_send', protection.count)
             selected_adapter = adapter or LiteLLMAdapter(LLMSettings(selected.upstream_model, selected.upstream_url, 'local-only'))
-            async with asyncio.timeout(95):
-                answer = await selected_adapter.complete(safe_messages)
-            if not isinstance(answer, str) or not answer.strip() or len(answer) > 20000:
-                raise Blocked('invalid_response', 502)
-            await anyio.to_thread.run_sync(protection.verify, answer)
-            if not state.authenticate(token):
-                raise Blocked('invalid_key', 401)
-            state.finish(rid, 'REDACT' if protection.count else 'ALLOW', 'approved', protection.count)
+            with trace.stage('upstream.call', {'route': selected.upstream_url, 'model': selected.public_model,
+                                               'upstream_model': selected.upstream_model.rsplit('/', 1)[-1],
+                                               'attempt': 1, 'stream': False}) as meta:
+                async with asyncio.timeout(95):
+                    answer = await selected_adapter.complete(safe_messages)
+                if not isinstance(answer, str) or not answer.strip() or len(answer) > 20000:
+                    raise Blocked('invalid_response', 502)
+                meta['response_characters'] = len(answer)
+                # The production adapter supplies only validated finish status and numeric usage.
+                metadata = getattr(selected_adapter, 'last_metadata', {})
+                if metadata.get('finish_reason') == 'stop':
+                    meta['finish_reason'] = 'stop'
+                meta['usage'] = {k: metadata.get(k) for k in ('prompt_tokens','completion_tokens','total_tokens')
+                                 if type(metadata.get(k)) is int and 0 <= metadata[k] <= 1_000_000_000}
+            with trace.stage('response.policy', {'action_on_sensitive': 'BLOCK'}) as meta:
+                protection.matched_rules.clear()
+                protection.last_counts = {}
+                try:
+                    await anyio.to_thread.run_sync(protection.verify, answer)
+                finally:
+                    meta.update(matched_rules=sorted(protection.matched_rules), detected_entity_counts=protection.last_counts)
+                meta['result'] = 'no_detected_residual'
+            with trace.stage('response.release', {'object': 'chat.completion', 'role': 'assistant', 'content_retained': False}):
+                if not state.authenticate(token):
+                    raise Blocked('invalid_key', 401)
+                state.finish(rid, 'REDACT' if protection.count else 'ALLOW', 'approved', protection.count)
             return JSONResponse({'id': 'chatcmpl-' + rid, 'object': 'chat.completion',
                 'created': int(time.time()), 'model': selected.public_model,
                 'choices': [{'index': 0, 'message': {'role': 'assistant', 'content': answer}, 'finish_reason': 'stop'}],

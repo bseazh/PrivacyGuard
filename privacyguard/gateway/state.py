@@ -38,6 +38,8 @@ class State:
                 CREATE TABLE IF NOT EXISTS sessions (digest TEXT PRIMARY KEY, username TEXT NOT NULL, expires REAL NOT NULL);
                 CREATE TABLE IF NOT EXISTS login_attempts (created REAL NOT NULL);
                 CREATE TABLE IF NOT EXISTS admin_events (created REAL NOT NULL, tenant TEXT NOT NULL, action TEXT NOT NULL, target TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS trace_spans (id INTEGER PRIMARY KEY, request_id TEXT NOT NULL, stage TEXT NOT NULL, created REAL NOT NULL, status TEXT NOT NULL, duration_ms INTEGER, details TEXT NOT NULL);
+                CREATE INDEX IF NOT EXISTS trace_request_idx ON trace_spans(request_id);
             ''')
             if version == [(1,)]:
                 db.execute("ALTER TABLE keys ADD COLUMN channel_id TEXT NOT NULL DEFAULT 'default'")
@@ -113,6 +115,27 @@ class State:
         with self.connect() as db:
             db.execute("INSERT INTO admins VALUES ('admin','local',?,?)", (salt, digest))
         return password
+
+    def trace_start(self, request_id, stage, details):
+        with self.connect() as db:
+            return db.execute('INSERT INTO trace_spans(request_id,stage,created,status,details) VALUES (?,?,?,?,?)',
+                              (request_id, stage, time.time(), 'RUNNING', json.dumps(details))).lastrowid
+
+    def trace_finish(self, span, status, duration_ms, details):
+        with self.connect() as db:
+            db.execute('UPDATE trace_spans SET status=?,duration_ms=?,details=? WHERE id=?',
+                       (status, duration_ms, json.dumps(details), span))
+
+    def read_trace(self, tenant, request_id):
+        with self.connect() as db:
+            row = db.execute('SELECT e.* FROM events e JOIN users u ON u.id=e.user_id WHERE e.request_id=? AND u.tenant=?',
+                             (request_id, tenant))
+            record = row.fetchone()
+            if not record:
+                raise PermissionError('not_found_or_forbidden')
+            event = dict(zip([x[0] for x in row.description], record))
+            spans = db.execute('SELECT stage,created,status,duration_ms,details FROM trace_spans WHERE request_id=? ORDER BY id', (request_id,)).fetchall()
+            return {'event': event, 'body_retained': False, 'spans': [dict(stage=s[0], created=s[1], status=s[2], duration_ms=s[3], details=json.loads(s[4])) for s in spans]}
 
     def login(self, password):
         with self.connect() as db:

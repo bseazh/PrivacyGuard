@@ -15,6 +15,9 @@ try {
   await page.locator('#login-form button').click();
   await page.locator('#console').waitFor({state:'visible'});
   console.log('browser_login: PASS');
+  await page.locator('#policy-test').click();
+  await page.waitForFunction(()=>document.getElementById('policy-test-summary').textContent.includes('11/11'));
+  console.log('browser_policy_examples: PASS');
   const suffix=Date.now().toString().slice(-7),user='验收用户-'+suffix,channel='验收通道-'+suffix;
   await page.locator('#user-name').fill(user);
   await page.locator('#user-form button').click();
@@ -39,6 +42,11 @@ try {
   const probe=await page.locator('#probe-result').textContent();
   assert.ok(probe.startsWith('真实调用通过'),probe);
   console.log('browser_real_model: PASS');
+  await page.locator('#trace-detail').waitFor({state:'visible'});
+  await page.waitForFunction(()=>document.getElementById('trace-spans').textContent.includes('返回前授权与审计'));
+  assert.ok((await page.locator('#probe-answer').textContent()).trim());
+  assert.equal((await page.locator('#trace-spans').textContent()).includes('alice@example.com'),false);
+  console.log('browser_trace_and_transient_response: PASS');
   await page.locator('#clear-key').click();
   await page.locator('#grant-list tr').filter({hasText:user}).getByRole('button',{name:'撤销授权'}).click();
   await page.locator('#grant-list tr').filter({hasText:user}).waitFor({state:'detached'});
