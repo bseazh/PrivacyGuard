@@ -37,6 +37,8 @@ class Config:
     public_model: str = 'privacyguard-local'
 
     def validate(self):
+        if not re.fullmatch(r'[a-zA-Z0-9_-]{1,64}', self.public_model):
+            raise ValueError('Invalid public model alias')
         address = urlsplit(self.upstream_url)
         # Literal loopback only: no DNS/redirect/public/metadata endpoints.
         if (address.hostname != '127.0.0.1' or address.scheme != 'http'
@@ -131,13 +133,15 @@ def parse_body(raw):
 
 def create_app(state: State, config: Config, detector=None, adapter=None):
     config.validate()
+    state.configure_default(config.__dict__)
     if detector is None:
         core = PrivacyGuard()
         core.redaction.timeout = 15
         core.presidio.timeout = 5
         detector = core.detect
-    adapter = adapter or LiteLLMAdapter(LLMSettings(config.upstream_model, config.upstream_url, 'local-only'))
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
+    from .admin import install_admin
+    install_admin(app, state, config)
     busy = False
 
     def error(code, status, rid):
@@ -149,19 +153,25 @@ def create_app(state: State, config: Config, detector=None, adapter=None):
     @app.middleware('http')
     async def local_boundary(request, call_next):
         # The prototype is local-only, including protection against browser cross-origin requests.
-        if request.headers.get('origin') or request.headers.get('host') not in ('127.0.0.1:8787', 'testserver'):
+        origin = request.headers.get('origin')
+        allowed_origin = origin == 'http://127.0.0.1:8787'
+        if (origin and not allowed_origin) or request.headers.get('host') not in ('127.0.0.1:8787', 'testserver'):
             return error('local_client_required', 403, uuid.uuid4().hex)
-        return await call_next(request)
+        response = await call_next(request)
+        response.headers['Cache-Control'] = 'no-store'
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self'; style-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+        return response
 
     def authenticate(request):
         header = request.headers.get('authorization', '')
         if not header.startswith('Bearer ') or len(header) > 256:
             raise Blocked('invalid_key', 401)
         token = header[7:]
-        user = state.authenticate(token)
-        if not user:
+        context = state.authorize(token)
+        if not context:
             raise Blocked('invalid_key', 401)
-        return token, user
+        return token, context
 
     @app.get('/health')
     async def health():
@@ -171,8 +181,10 @@ def create_app(state: State, config: Config, detector=None, adapter=None):
     async def models(request: Request):
         rid = uuid.uuid4().hex
         try:
-            authenticate(request)
-            return {'object': 'list', 'data': [{'id': config.public_model, 'object': 'model', 'owned_by': 'privacyguard'}]}
+            _, context = authenticate(request)
+            selected = Config(**json.loads(context['config']))
+            selected.validate()
+            return {'object': 'list', 'data': [{'id': selected.public_model, 'object': 'model', 'owned_by': 'privacyguard'}]}
         except Blocked as exc:
             return error(exc.code, exc.status, rid)
         except Exception:
@@ -183,8 +195,11 @@ def create_app(state: State, config: Config, detector=None, adapter=None):
         nonlocal busy
         rid, admitted, acquired = uuid.uuid4().hex, False, False
         try:
-            token, user = authenticate(request)
-            if not state.admit(rid, user, config.revision):
+            token, context = authenticate(request)
+            selected = Config(**json.loads(context['config']))
+            selected.validate()
+            revision = context['channel_id'] + ':' + selected.revision
+            if not state.admit(rid, context['user_id'], revision, context['channel_id']):
                 raise Blocked('rate_limited', 429)
             admitted = True
             if busy:
@@ -199,7 +214,7 @@ def create_app(state: State, config: Config, detector=None, adapter=None):
                     if len(raw) > MAX_BYTES:
                         raise Blocked('request_too_large', 413)
             body = parse_body(raw)
-            if body['model'] != config.public_model:
+            if body['model'] != selected.public_model:
                 raise Blocked('model_not_allowed', 403)
             for message in body['messages']:
                 if TOKEN.search(message['content']):
@@ -224,8 +239,9 @@ def create_app(state: State, config: Config, detector=None, adapter=None):
             if not state.authenticate(token):
                 raise Blocked('invalid_key', 401)
             state.finish(rid, 'PENDING', 'pre_send', protection.count)
+            selected_adapter = adapter or LiteLLMAdapter(LLMSettings(selected.upstream_model, selected.upstream_url, 'local-only'))
             async with asyncio.timeout(95):
-                answer = await adapter.complete(safe_messages)
+                answer = await selected_adapter.complete(safe_messages)
             if not isinstance(answer, str) or not answer.strip() or len(answer) > 20000:
                 raise Blocked('invalid_response', 502)
             await anyio.to_thread.run_sync(protection.verify, answer)
@@ -233,9 +249,9 @@ def create_app(state: State, config: Config, detector=None, adapter=None):
                 raise Blocked('invalid_key', 401)
             state.finish(rid, 'REDACT' if protection.count else 'ALLOW', 'approved', protection.count)
             return JSONResponse({'id': 'chatcmpl-' + rid, 'object': 'chat.completion',
-                'created': int(time.time()), 'model': config.public_model,
+                'created': int(time.time()), 'model': selected.public_model,
                 'choices': [{'index': 0, 'message': {'role': 'assistant', 'content': answer}, 'finish_reason': 'stop'}],
-                'privacyguard': {'status': 'approved', 'revision': config.revision,
+                'privacyguard': {'status': 'approved', 'revision': revision,
                                  'entity_count': protection.count, 'request_id': rid}}, headers={'Cache-Control': 'no-store'})
         except Blocked as exc:
             code, status = exc.code, exc.status

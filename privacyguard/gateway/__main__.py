@@ -11,7 +11,7 @@ from .state import State
 def main():
     os.umask(0o077)
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=['init', 'serve', 'revoke'])
+    parser.add_argument('action', choices=['init', 'serve', 'revoke', 'init-admin'])
     parser.add_argument('--directory', type=Path, default=Path.home() / '.privacyguard/gateway')
     parser.add_argument('--model', help='Explicit local upstream model, with openai/ prefix')
     args = parser.parse_args()
@@ -32,6 +32,15 @@ def main():
         if not (root / 'config.json').is_file():
             parser.error('Initialize a new state directory first')
         state = State(root / 'state.sqlite3')
+        if args.action == 'init-admin':
+            credential = root / 'admin-login.txt'
+            if credential.exists():
+                parser.error('Administrator credential already exists; refusing to overwrite')
+            password = state.create_admin()
+            with credential.open('x') as handle:
+                handle.write(password + '\n')
+            print(f'Administrator password created: {credential}; open http://127.0.0.1:8787/admin')
+            return
         if args.action == 'revoke':
             state.revoke_all()
             print('All gateway keys revoked')

@@ -29,3 +29,6 @@ privacyguard-presidio = "privacyguard.presidio_service:main"
 
 [tool.setuptools.packages.find]
 include = ["privacyguard*", "service*"]
+
+[tool.setuptools.package-data]
+"privacyguard.gateway" = ["web/*.html", "web/*.css", "web/*.js"]

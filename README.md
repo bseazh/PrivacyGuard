@@ -56,7 +56,7 @@ flowchart TB
 
 ## Gateway：本机原型与管理后台规划
 
-2026-11-04：本机单 Channel 网关原型已实现，OpenAI Python SDK → 识别/假名化 → LiteLLM → 本机模型 → 回答检查已验收。地址 `http://127.0.0.1:8787/v1`；需单独初始化和启动，见 [运行与测试指南](docs/gateway-local-run.md)。仅支持非流式纯文本、固定本机上游；完整后台、多用户隔离、回填及 WorkBuddy/Codex 原生客户端兼容尚未实现或验收。
+2026-11-04：本机网关及基础管理员后台已实现。后台 `http://127.0.0.1:8787/admin` 支持用户、Channel、授权、Key 发放/撤销、虚构材料真实调用及审计；每个 Key 绑定用户和 Channel。API 地址 `http://127.0.0.1:8787/v1`。浏览器完整操作及 OpenAI SDK → 识别/假名化 → LiteLLM → 本机模型 → 回答检查已验收，见 [后台使用与验收](docs/gateway-admin.md) 和 [原型启动指南](docs/gateway-local-run.md)。目前仍仅支持单组织本机部署、固定上游/策略和非流式纯文本；策略发布后台、回填及 WorkBuddy/Codex 原生客户端兼容仍待实现或验收。
 
 计划在现有文件处理 / MCP 层之后增加 API 安全网关：管理员统一管理用户、网关 Key、上游模型、Channel、请求/回答策略、测试、版本发布和审计。Channel 绑定授权用户、一个上游连接及确切策略版本；保存草稿不立即上线，测试后显式启用。
 
