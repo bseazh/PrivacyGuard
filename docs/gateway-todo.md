@@ -1,23 +1,23 @@
 # Gateway TODO 与验收
 
-日期：2026-11-04。当前仅完成方案整理，下面所有实现项均未完成。基线：[管理后台与管控流程](gateway-design.md)。GitHub 跟踪：[Issue #1](https://github.com/bseazh/PrivacyGuard/issues/1)；仓库内正文：[Gateway Epic](gateway-epic.md)。
+日期：2026-11-04。G1 的本机单 Channel 子集已实现并通过 SDK/真实模型测试，完整 G1 仍未完成。范围与限制见 [运行验收](gateway-local-run.md)。基线：[管理后台与管控流程](gateway-design.md)。GitHub 跟踪：[Issue #1](https://github.com/bseazh/PrivacyGuard/issues/1)；仓库内正文：[Gateway Epic](gateway-epic.md)。
 
 ## G0：设计基线与评审
 
 - [x] 明确 Agent/MCP 与网关两层边界，绘制目标架构。
 - [x] 写明后台全流程、对象模型、策略语义、版本启用和回填边界。
 - [x] 拆分实现目标及可验证的完成条件。
-- [ ] 用户评审方案后，将关键协议和默认策略决策记入设计文档。
+- [x] 用户同意先运行最小管道；首版协议、默认策略和实际限制记录在运行指南。
 
 ## G1：最小可验证的安全管道（首个实现里程碑）
 
 - [ ] 建立独立 gateway 模块、存储迁移及配置校验；默认仅本机监听。
 - [ ] 实现网关 Key 校验、组织/用户/Channel 授权、撤销和过期。
 - [ ] 实现固定上游、模型白名单及最小 `/v1/models`。
-- [ ] 实现非流式文本 `/v1/chat/completions`；严格校验支持字段。
-- [ ] 实现请求 ALLOW/REDACT/BLOCK、实际出站内容复检与回答策略。
+- [x] 实现非流式文本 `/v1/chat/completions`；严格校验支持字段。
+- [x] 实现请求 ALLOW/REDACT/BLOCK、实际出站内容复检与回答策略（固定预设；动态策略归 G2）。
 - [ ] 设置检测失败阻断、请求限制、超时、SSRF 防护和最小审计。
-- [ ] 编写记录型测试上游与虚构测试数据。
+- [x] 编写记录型测试上游与虚构测试数据。
 
 完成条件：授权请求成功往返；私钥、无权限、检测故障三类场景上游请求数为零；脱敏场景实际出站体无已标注原值；回答违规不返回原始回答；不支持输入明确拒绝。独立运行说明可复现。
 

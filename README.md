@@ -54,7 +54,9 @@ flowchart TB
 
 最新实测见 [OCR、真实材料标注与回答质量验收](docs/ocr-and-quality-acceptance.md)：两页扫描 PDF 与本地模型受控回答已跑通；5 份真实材料、60 个候选仍需人工确认，真实召回率尚未产生。
 
-## Gateway 管理后台规划（待实现）
+## Gateway：本机原型与管理后台规划
+
+2026-11-04：本机单 Channel 网关原型已实现，OpenAI Python SDK → 识别/假名化 → LiteLLM → 本机模型 → 回答检查已验收。地址 `http://127.0.0.1:8787/v1`；需单独初始化和启动，见 [运行与测试指南](docs/gateway-local-run.md)。仅支持非流式纯文本、固定本机上游；完整后台、多用户隔离、回填及 WorkBuddy/Codex 原生客户端兼容尚未实现或验收。
 
 计划在现有文件处理 / MCP 层之后增加 API 安全网关：管理员统一管理用户、网关 Key、上游模型、Channel、请求/回答策略、测试、版本发布和审计。Channel 绑定授权用户、一个上游连接及确切策略版本；保存草稿不立即上线，测试后显式启用。
 
@@ -66,7 +68,7 @@ flowchart TB
 - [分阶段 TODO 与验收矩阵](docs/gateway-todo.md)
 - [GitHub 跟踪 Issue #1](https://github.com/bseazh/PrivacyGuard/issues/1) · [仓库内任务正文](docs/gateway-epic.md)
 
-这部分目前是设计草案，不代表网关已运行；现有安装入口和 MCP 链路不因该规划改变。
+以下文档描述完整目标，不能将原型验收等同于全部目标完成；现有安装入口和 MCP 链路保持原有流程。
 
 ## 现有文件处理链路的后续工作
 
